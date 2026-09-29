@@ -92,6 +92,8 @@ function Rollback:simulate(f)
   local r = self:remote_input(f)
   self.predicted[f] = r
   local l = self.inputs[self.me][f]
+  -- never simulate with a missing input: that is a silent desync
+  if l == nil then error("rollback: local input for frame " .. f .. " is missing") end
   self.current = f
   if self.me == 1 then
     self.sim:step(l, r)
@@ -179,7 +181,12 @@ function Rollback:gc()
   if keep_state > self.state_floor then self.state_floor = keep_state end
   -- inputs: keep the last confirmed remote one (used for prediction) and
   -- every local one the peer has not acknowledged (resent redundantly)
-  local keep_input = math.min(self.remote_confirmed, self.peer_ack + 1)
+  -- An input may only go once (1) its frame has been simulated, (2) it can no
+  -- longer be needed by a rollback (confirmed), and (3) the peer has it. On a
+  -- fast link the peer's inputs arrive AHEAD of our current frame (input
+  -- delay), so (1) is not implied by (2) - forgetting it deleted inputs of
+  -- frames not simulated yet and desynced LAN games.
+  local keep_input = math.min(self.remote_confirmed, self.peer_ack + 1, self.frame)
   local me, them = self.inputs[self.me], self.inputs[self.them]
   for f = self.gc_floor, keep_input - 1 do
     me[f] = nil

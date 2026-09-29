@@ -164,6 +164,10 @@ return (function()
       ok = ok and good
     end
     local nets = {
+      -- latency below the input delay: the peer's inputs arrive ahead of our
+      -- frame (this is what real LAN / localhost games look like)
+      { name = "loopback", lat = 0, jit = 0, loss = 0, delay = 2 },
+      { name = "LAN+delay", lat = 1, jit = 0, loss = 0, delay = 4 },
       { name = "LAN", lat = 1, jit = 0, loss = 0, delay = 1 },
       { name = "internet", lat = 5, jit = 3, loss = 5, delay = 2 },
       { name = "bad wifi", lat = 9, jit = 8, loss = 20, delay = 2 },

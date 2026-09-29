@@ -117,7 +117,8 @@ test: $(TARGET)
 	./$(TARGET) --headless --frames 1 -- --check-content --no-user-mods
 	./$(TARGET) --headless --frames 20000 -- --mode watch --level 3 --level2 4 --seed 7 \
 	            --first-to 2 --skip-draw --turbo 4 --quit-at-end --no-user-mods
-	./scripts/netplay-test.sh ./$(TARGET)
+	./scripts/netplay-test.sh ./$(TARGET) 0,0,0
+	./scripts/netplay-test.sh ./$(TARGET) 50,20,5
 
 # ---- packaging --------------------------------------------------------
 VERSION  := $(shell grep -m1 'define BUYO_VERSION' src/engine.h | cut -d '"' -f2)

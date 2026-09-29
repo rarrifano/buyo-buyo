@@ -144,9 +144,7 @@ local function check_content()
       if p then
         ok, err = audio.load(p)
       end
-      if not ok then
-        Content.report("music", def.id, tostring(err))
-      end
+      if not ok then Content.report("music", def.id, tostring(err)) end
     end
   end
   for _, def in ipairs(Content.list "modes") do

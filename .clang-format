@@ -1,0 +1,34 @@
+---
+# clang-format config for src/ (K&R-ish style, 4-space indent, matches
+# existing code in src/*.c, src/*.h).
+Language: Cpp
+BasedOnStyle: LLVM
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+
+BreakBeforeBraces: Attach
+AllowShortIfStatementsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortLoopsOnASingleLine: false
+IndentCaseLabels: true
+
+PointerAlignment: Right
+DerivePointerAlignment: false
+
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignTrailingComments: true
+
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+Cpp11BracedListStyle: true
+
+SortIncludes: false
+IncludeBlocks: Preserve
+
+BinPackArguments: true
+BinPackParameters: true

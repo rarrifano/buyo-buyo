@@ -1,0 +1,38 @@
+# ---- build outputs ----------------------------------------------------
+/build/
+/build-*/
+/cmake-build-*/
+/dist/
+/out/
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
+*.o
+*.obj
+*.d
+*.a
+*.lib
+*.exe
+*.dll
+*.pdb
+*.dSYM/
+
+# ---- local caches (podman logs, settings of container runs) -----------
+/.cache/
+
+# ---- runtime artifacts --------------------------------------------------
+# F12 screenshots and exported skin templates
+buyo-shot-*.bmp
+/skin-template*.png
+# personal test mods dropped into the repo by mistake
+/mods/
+
+# ---- editors / OS -------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini

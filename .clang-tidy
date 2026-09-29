@@ -1,0 +1,14 @@
+---
+# Keep it light: this is a small SDL2/Lua game, not a style crusade.
+# Only flag real bugs; third_party/ is excluded via HeaderFilterRegex + Makefile.
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  performance-*,
+  portability-*
+WarningsAsErrors: ''
+HeaderFilterRegex: '^src/'
+FormatStyle: file

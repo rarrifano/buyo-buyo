@@ -19,6 +19,9 @@
 #include <stddef.h>
 
 #define BUYO_VERSION "0.2.0"
+#ifndef BUYO_COMMIT
+#define BUYO_COMMIT "unknown" /* set by the Makefile from `git rev-parse --short HEAD` */
+#endif
 #define GAME_W 1280 /* logical resolution */
 #define GAME_H 720
 #define TICK_HZ 60 /* fixed simulation rate */

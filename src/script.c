@@ -10,7 +10,7 @@
  * shows the message on an error screen; F5 reloads all scripts.
  *
  * `sys` module: time, quit, fullscreen, save/load (user dir), args, headless,
- * data_dir, pref_dir, clipboard, text_input, version, platform, plus the
+ * data_dir, pref_dir, clipboard, text_input, version, commit, platform, plus the
  * filesystem helpers from fs.c.
  */
 #include "engine.h"
@@ -225,6 +225,8 @@ int luaopen_sys(lua_State *Ls) {
     lua_setfield(Ls, -2, "platform");
     lua_pushstring(Ls, BUYO_VERSION);
     lua_setfield(Ls, -2, "version");
+    lua_pushstring(Ls, BUYO_COMMIT);
+    lua_setfield(Ls, -2, "commit");
     return 1;
 }
 

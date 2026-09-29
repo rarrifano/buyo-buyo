@@ -126,7 +126,11 @@ function Title:draw()
     )
   end
   UI.text("\003\004 SELECT   Z/ENTER OK   X/ESC BACK   F5 RELOAD", 640, 684, 2, "center", UI.DIM)
-  UI.text("v" .. sys.version, 1266, 704, 1.5, "right", UI.DIM)
+  local ver = "v" .. sys.version
+  if sys.commit and sys.commit ~= "unknown" then
+    ver = ver .. " (" .. sys.commit .. ")"
+  end
+  UI.text(ver, 1266, 704, 1.5, "right", UI.DIM)
 end
 
 return Title

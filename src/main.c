@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(a, "--fullscreen"))
             g_engine.fullscreen = true;
         else if (!strcmp(a, "--scale") && i + 1 < argc)
-            scale = atof(argv[++i]);
+            scale = strtod(argv[++i], NULL);
         else if (!strcmp(a, "--software"))
             software = true;
         else if (!strcmp(a, "--no-vsync"))
@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(a, "--realtime"))
             realtime = true;
         else if (!strcmp(a, "--frames") && i + 1 < argc)
-            max_frames = atol(argv[++i]);
+            max_frames = strtol(argv[++i], NULL, 10);
         else if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(argv[0]);
             return 0;
@@ -142,9 +142,12 @@ int main(int argc, char **argv) {
     g_engine.argv = lua_args;
 
     if (g_engine.headless) {
-        /* SDL2 and SDL3 (sdl2-compat) spell these differently */
-        SDL_setenv("SDL_VIDEODRIVER", "offscreen", 1);
-        SDL_setenv("SDL_VIDEO_DRIVER", "offscreen", 1);
+        /* the dummy driver has no GPU/GL dependency at all, unlike the
+         * offscreen driver (which still allocates a real GL context under
+         * the hood and fails on CI runners without a GPU, e.g. macOS-latest).
+         * SDL2 and SDL3 (sdl2-compat) spell the env var differently. */
+        SDL_setenv("SDL_VIDEODRIVER", "dummy", 1);
+        SDL_setenv("SDL_VIDEO_DRIVER", "dummy", 1);
         software = true;
         vsync = false;
         mute = true;
@@ -245,7 +248,7 @@ int main(int argc, char **argv) {
                     break;
                 case SDL_WINDOWEVENT:
                     /* only report focus loss after we actually had focus: some
-                     * compositors (and the offscreen driver) send a spurious
+                     * compositors (and the dummy driver) send a spurious
                      * FOCUS_LOST at startup, which would auto-pause the game */
                     if (g_engine.headless)
                         break;
@@ -275,7 +278,6 @@ int main(int argc, char **argv) {
         int updates = 0;
         if (g_engine.headless && !realtime) {
             script_update(step);
-            updates = 1;
             frames++;
         } else {
             acc += dt;

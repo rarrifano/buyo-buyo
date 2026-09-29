@@ -73,12 +73,13 @@ static int op_arg(lua_State *L, int i) {
     return OP_UNION;
 }
 
-static Prim *push_prim(lua_State *L, Shape *s, int kind) {
+/* NULL when out of memory; callers raise the Lua error */
+static Prim *push_prim(Shape *s, int kind) {
     if (s->n == s->cap) {
         int nc = s->cap ? s->cap * 2 : 8;
         Prim *v = (Prim *)realloc(s->v, (size_t)nc * sizeof *v);
         if (!v)
-            luaL_error(L, "out of memory");
+            return NULL;
         s->v = v;
         s->cap = nc;
     }
@@ -110,7 +111,9 @@ static int l_shape_circle(lua_State *L) {
     Shape *s = check_shape(L, 1);
     float cx = (float)luaL_checknumber(L, 2), cy = (float)luaL_checknumber(L, 3);
     float r = (float)luaL_checknumber(L, 4);
-    Prim *p = push_prim(L, s, PK_CIRCLE);
+    Prim *p = push_prim(s, PK_CIRCLE);
+    if (!p)
+        return luaL_error(L, "out of memory");
     p->p[0] = cx;
     p->p[1] = cy;
     p->p[2] = r;
@@ -130,7 +133,9 @@ static int l_shape_ellipse(lua_State *L) {
     float rx = fmaxf((float)luaL_checknumber(L, 4), 0.01f),
           ry = fmaxf((float)luaL_checknumber(L, 5), 0.01f);
     float a = (float)luaL_optnumber(L, 6, 0.0);
-    Prim *p = push_prim(L, s, PK_ELLIPSE);
+    Prim *p = push_prim(s, PK_ELLIPSE);
+    if (!p)
+        return luaL_error(L, "out of memory");
     p->p[0] = cx;
     p->p[1] = cy;
     p->p[2] = rx;
@@ -162,7 +167,9 @@ static int l_shape_rect(lua_State *L) {
         h = -h;
     }
     r = clampf(r, 0.f, fminf(w, h) * 0.5f);
-    Prim *p = push_prim(L, s, PK_RECT);
+    Prim *p = push_prim(s, PK_RECT);
+    if (!p)
+        return luaL_error(L, "out of memory");
     p->p[0] = x + w * 0.5f;
     p->p[1] = y + h * 0.5f;
     p->p[2] = w * 0.5f;
@@ -183,7 +190,9 @@ static int l_shape_capsule(lua_State *L) {
     float ax = (float)luaL_checknumber(L, 2), ay = (float)luaL_checknumber(L, 3);
     float bx = (float)luaL_checknumber(L, 4), by = (float)luaL_checknumber(L, 5);
     float r = (float)luaL_checknumber(L, 6);
-    Prim *p = push_prim(L, s, PK_CAPSULE);
+    Prim *p = push_prim(s, PK_CAPSULE);
+    if (!p)
+        return luaL_error(L, "out of memory");
     p->p[0] = ax;
     p->p[1] = ay;
     p->p[2] = bx;
@@ -222,7 +231,11 @@ static int l_shape_poly(lua_State *L) {
         }
     }
     int op = op_arg(L, 3);
-    Prim *p = push_prim(L, s, PK_POLY);
+    Prim *p = push_prim(s, PK_POLY);
+    if (!p) {
+        free(pts);
+        return luaL_error(L, "out of memory");
+    }
     p->pts = pts;
     p->npts = n;
     p->x0 = x0;

@@ -48,16 +48,27 @@ function Scene.draw()
   end
 end
 
+-- only call real methods: a scene field that happens to share a callback's
+-- name (e.g. `self.text = "..."`) must never be called
+local function method(name)
+  local cur = Scene.cur
+  local f = cur and cur[name]
+  return type(f) == "function" and f or nil
+end
+
 function Scene.key(name, down, rep)
-  if Scene.cur and Scene.cur.key and Scene.dir == 0 then Scene.cur:key(name, down, rep) end
+  local f = method "key"
+  if f and Scene.dir == 0 then f(Scene.cur, name, down, rep) end
 end
 
 function Scene.text(str)
-  if Scene.cur and Scene.cur.text and Scene.dir == 0 then Scene.cur:text(str) end
+  local f = method "text"
+  if f and Scene.dir == 0 then f(Scene.cur, str) end
 end
 
 function Scene.focus(on)
-  if Scene.cur and Scene.cur.focus then Scene.cur:focus(on) end
+  local f = method "focus"
+  if f then f(Scene.cur, on) end
 end
 
 return Scene

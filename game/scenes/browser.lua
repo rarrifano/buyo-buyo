@@ -21,7 +21,7 @@ local VISIBLE = 11
 
 function Browser.new()
   return setmetatable(
-    { t = 0, tab = 1, sel = 1, scroll = 0, focus = "list", act = 1, msg = "" },
+    { t = 0, tab = 1, sel = 1, scroll = 0, pane = "list", act = 1, msg = "" },
     Browser
   )
 end
@@ -107,7 +107,7 @@ function Browser:update()
   self.t = self.t + 1
   Backdrop.update()
   local m = Controls.menu
-  if self.focus == "list" then
+  if self.pane == "list" then
     local n = #self:items()
     if m:rep "left" then
       self.tab = (self.tab - 2) % #TABS + 1
@@ -130,7 +130,7 @@ function Browser:update()
     if self.sel <= self.scroll then self.scroll = self.sel - 1 end
     if self.sel > self.scroll + VISIBLE then self.scroll = self.sel - VISIBLE end
     if m.pressed.confirm then
-      self.focus = "actions"
+      self.pane = "actions"
       Sound.play "menu_ok"
       local def = self:current()
       if def and def.kind == "music" then
@@ -152,7 +152,7 @@ function Browser:update()
       Sound.play "menu_move"
     end
     if m.pressed.back then
-      self.focus = "list"
+      self.pane = "list"
       Sound.play "menu_back"
       Jukebox.play "title"
     elseif m.pressed.confirm then
@@ -184,7 +184,7 @@ function Browser:update()
         self:reload()
         self.msg = "RELOADED - " .. #Content.errors .. " ERRORS"
       else
-        self.focus = "list"
+        self.pane = "list"
       end
     end
   end
@@ -335,7 +335,7 @@ function Browser:draw()
   end
   local def = self:current()
   if def then self:draw_preview(def, 530, 130) end
-  if self.focus == "actions" then
+  if self.pane == "actions" then
     gfx.color(0, 0, 0, 150)
     gfx.rect(0, 0, 1280, 720)
     UI.panel(400, 220, 480, 300)

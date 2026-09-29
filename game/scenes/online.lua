@@ -22,7 +22,7 @@ local ROWS = { "code", "connect", "copy", "delay", "back" }
 function Online.new(opts)
   opts = opts or {}
   local o = setmetatable(
-    { t = 0, sel = 1, text = "", opts = opts, status = "WAITING FOR A FRIEND..." },
+    { t = 0, sel = 1, code = "", opts = opts, status = "WAITING FOR A FRIEND..." },
     Online
   )
   local s, err = Session.new {
@@ -38,7 +38,7 @@ function Online.new(opts)
     if not opts.no_stun then s:start_stun() end
   end
   if opts.connect then
-    o.text = opts.connect
+    o.code = opts.connect
     o:connect()
   end
   return o
@@ -50,7 +50,7 @@ function Online:leave() sys.text_input(false) end
 
 function Online:connect()
   if not self.session then return end
-  local a, b, c = Code.parse(self.text, Session.DEFAULT_PORT)
+  local a, b, c = Code.parse(self.code, Session.DEFAULT_PORT)
   if not a then
     self.status = "THAT DOES NOT LOOK LIKE A CODE OR IP:PORT"
     Sound.play "menu_back"
@@ -61,7 +61,7 @@ function Online:connect()
     self.status = "LOOKING UP " .. a:upper() .. "..."
   else
     self.session:connect(a, b)
-    self.status = "CONNECTING TO " .. self.text:upper() .. "..."
+    self.status = "CONNECTING TO " .. self.code:upper() .. "..."
   end
   self.connect_t = self.t
   Sound.play "menu_ok"
@@ -70,19 +70,19 @@ end
 function Online:text(str)
   if self.sel ~= 1 then return end
   str = str:gsub("[^%w%.%-:]", "")
-  if #self.text + #str <= 40 then self.text = self.text .. str end
+  if #self.code + #str <= 40 then self.code = self.code .. str end
 end
 
 function Online:key(name, down)
   if not down then return end
   if self.sel == 1 and name == "Backspace" then
-    self.text = self.text:sub(1, -2)
+    self.code = self.code:sub(1, -2)
     self.ate_back = true
   elseif
     name == "V" and (input.key "Left Ctrl" or input.key "Right Ctrl" or input.key "Left GUI")
   then
     local clip = sys.clipboard()
-    if clip then self.text = clip:gsub("[^%w%.%-:]", ""):sub(1, 40) end
+    if clip then self.code = clip:gsub("[^%w%.%-:]", ""):sub(1, 40) end
     self.sel = 1
   end
 end
@@ -234,7 +234,7 @@ function Online:draw()
       gfx.color(on and 255 or 120, on and 220 or 120, on and 90 or 160)
       gfx.rect_line(470, y - 4, 600, 36, 2)
       local caret = on and (self.t // 20) % 2 == 0 and "_" or ""
-      UI.text(self.text:upper() .. caret, 482, y + 2, 3, "left", UI.WHITE)
+      UI.text(self.code:upper() .. caret, 482, y + 2, 3, "left", UI.WHITE)
     elseif row == "connect" then
       UI.text("CONNECT", 640, y, 3, "center", col)
     elseif row == "copy" then

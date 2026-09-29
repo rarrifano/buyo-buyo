@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libsdl2-dev liblua5.4-dev pkg-config
+      - name: Build
+        run: make
+      - name: Test
+        run: xvfb-run -a make test
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: brew install sdl2 pkg-config
+      - name: Build
+        run: make
+      - name: Test
+        run: make test
+
+  build-windows-cross:
+    # Cross-compile the Windows build from Linux (mingw64), same toolchain
+    # used by `make windows` / the podman dev image.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mingw + SDL2
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            mingw-w64 zip
+      - name: Fetch mingw64 SDL2
+        run: |
+          curl -fsSL -o sdl2-mingw.tar.gz \
+            https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-devel-2.30.9-mingw.tar.gz
+          tar xf sdl2-mingw.tar.gz
+          sudo cp -r SDL2-2.30.9/x86_64-w64-mingw32/* /usr/x86_64-w64-mingw32/
+      - name: Build (Windows target)
+        run: make windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buyo-buyo-windows
+          path: dist/*windows*
+
+  build-windows-native:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-lua
+      - name: Build
+        run: mingw32-make
+      - name: Self-tests (headless, no netplay loopback socket needed)
+        run: |
+          ./build/buyo-buyo.exe --headless --frames 1 -- --test
+          ./build/buyo-buyo.exe --headless --frames 1 -- --check-content

@@ -51,10 +51,20 @@ GitHub Actions workflows live in `.github/workflows/`:
   `make windows`).
 - `lint.yml` - `make format-check`, `make lint-lua` (luacheck), and
   `make lint-c` (clang-tidy).
+- `release.yml` - on a `v*` tag push, packages Linux/macOS/Windows builds
+  (`make dist` / `make windows`), runs each package on its OS
+  (`scripts/smoke-test-dist.sh`) and attaches them to a **draft** GitHub
+  release. Run it by hand (workflow_dispatch) for a dry run.
 
-Both run on every push to `main` and every pull request. Keep them green;
-if you add a new engine dependency, update both the Containerfile and the
-CI dependency-install steps together.
+`ci.yml` and `lint.yml` run on every push to `main` and every pull request.
+Keep them green; if you add a new engine dependency, update both the
+Containerfile and the CI dependency-install steps together.
+
+To release: set `BUYO_VERSION` in `src/engine.h` to the new version (it's
+the fallback for builds without git, e.g. source tarballs), then
+`git tag -a v1.2.0 -m "Buyo Buyo v1.2.0" && git push origin v1.2.0`. The
+version shown in the game comes from the tag (`git describe`). Review the
+draft release, write the notes, publish.
 
 ## Dev container
 

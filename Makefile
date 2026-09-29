@@ -141,13 +141,17 @@ VERSION  := $(BUILD_VERSION)
 DISTNAME := buyo-buyo-$(VERSION)-$(TARGET_OS)
 DISTDIR  := dist/$(DISTNAME)
 
+# binary + game + content + docs, as .zip for Windows and .tar.gz elsewhere
+# (tar always keeps the executable bit; zip extractors may not)
 dist: $(TARGET)
 	rm -rf $(DISTDIR) && mkdir -p $(DISTDIR)
 	cp $(TARGET) $(DISTDIR)/
 	cp -r $(wildcard game content docs LICENSE README.md) $(DISTDIR)/
 	rm -rf $(DISTDIR)/game/tests
 	@if [ "$(TARGET_OS)" = windows ]; then ./scripts/copy-dlls.sh $(TARGET) $(DISTDIR); fi
-	cd dist && rm -f $(DISTNAME).zip && (zip -qr $(DISTNAME).zip $(DISTNAME) 2>/dev/null || tar czf $(DISTNAME).tar.gz $(DISTNAME))
+	cd dist && rm -f $(DISTNAME).zip $(DISTNAME).tar.gz && \
+	  if [ "$(TARGET_OS)" = windows ] && command -v zip >/dev/null; then zip -qr $(DISTNAME).zip $(DISTNAME); \
+	  else tar czf $(DISTNAME).tar.gz $(DISTNAME); fi
 	@echo "packaged: $$(ls -1 dist/$(DISTNAME).* | head -1)"
 
 # Cross-compile from Linux. Fedora ships x86_64-w64-mingw32-pkg-config; on

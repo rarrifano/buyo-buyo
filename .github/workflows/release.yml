@@ -1,0 +1,119 @@
+name: Release
+
+# Push a tag like v1.2.0 and this builds Linux, macOS and Windows packages,
+# runs each one the way a player would (scripts/smoke-test-dist.sh) and
+# attaches them to a *draft* GitHub release: write the notes, then publish.
+# Run it by hand (Actions -> Release -> Run workflow) for a dry run that only
+# builds and tests the packages.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    # pinned (not -latest): the glibc it builds against is the oldest one the
+    # binary runs on
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the version comes from `git describe --tags`
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libsdl2-dev pkg-config
+      - name: Package
+        run: make dist
+      - name: Smoke-test the package
+        run: |
+          mkdir unpacked && tar xzf dist/*.tar.gz -C unpacked
+          bash scripts/smoke-test-dist.sh unpacked/*/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*.tar.gz
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install dependencies
+        run: brew install sdl2 pkg-config
+      - name: Package
+        run: make dist
+      - name: Smoke-test the package
+        run: |
+          mkdir unpacked && tar xzf dist/*.tar.gz -C unpacked
+          bash scripts/smoke-test-dist.sh unpacked/*/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*.tar.gz
+
+  windows:
+    # cross-compiled like `make windows`, then run on real Windows below
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install mingw
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mingw-w64 zip
+      - name: Fetch mingw64 SDL2
+        run: |
+          curl -fsSL -o sdl2-mingw.tar.gz \
+            https://github.com/libsdl-org/SDL/releases/download/release-2.30.9/SDL2-devel-2.30.9-mingw.tar.gz
+          tar xf sdl2-mingw.tar.gz
+          sudo cp -r SDL2-2.30.9/x86_64-w64-mingw32/* /usr/x86_64-w64-mingw32/
+      - name: Package
+        run: make windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*.zip
+
+  windows-smoke-test:
+    needs: windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4 # for scripts/
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows
+          path: pkg
+      - name: Unpack
+        shell: pwsh
+        run: Expand-Archive -Path (Get-ChildItem pkg/*.zip).FullName -DestinationPath unpacked
+      - name: Smoke-test the package
+        shell: bash
+        run: bash scripts/smoke-test-dist.sh unpacked/*/
+
+  release:
+    needs: [linux, macos, windows-smoke-test]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --draft --verify-tag \
+            --title "Buyo Buyo $GITHUB_REF_NAME" --generate-notes

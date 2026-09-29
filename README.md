@@ -61,6 +61,15 @@ or the network), broken content is reported instead of crashing, and
   <img src="docs/images/content.png" width="49%" alt="Content browser">
 </p>
 
+## Download
+
+Grab a build for Windows, macOS or Linux from
+[Releases](https://github.com/rarrifano/buyo-buyo/releases), unpack it and
+run `buyo-buyo` (`buyo-buyo.exe` on Windows). The Windows zip has
+everything it needs; on Linux install SDL2 (Fedora: `sdl2-compat`,
+Debian/Ubuntu: `libsdl2-2.0-0`), on macOS `brew install sdl2`. Or build it
+yourself, see below.
+
 ## Requirements
 
 - A C compiler (`gcc`/`clang`), `make`, `pkg-config`

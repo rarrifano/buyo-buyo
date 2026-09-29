@@ -1,0 +1,4 @@
+# Shell scripts keep LF line endings even in a Windows checkout
+# (core.autocrlf=true), otherwise bash there fails on the stray \r.
+*.sh text eol=lf
+scripts/pre-commit text eol=lf

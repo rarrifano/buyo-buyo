@@ -108,11 +108,11 @@ static bool parse_ipv4(const char *ip, int port, struct sockaddr_in *out) {
 /* sockets                                                             */
 /* ------------------------------------------------------------------ */
 
+/* NULL if the socket was closed (callers raise the Lua error, which keeps
+ * static analyzers aware that the fd is valid afterwards) */
 static Sock *check_sock(lua_State *L) {
     Sock *s = (Sock *)luaL_checkudata(L, 1, SOCKET_MT);
-    if (s->fd == SOCK_BAD)
-        luaL_error(L, "socket is closed");
-    return s;
+    return s->fd == SOCK_BAD ? NULL : s;
 }
 
 /* net.udp([port]) -> Socket | nil, err */
@@ -159,6 +159,8 @@ static int l_udp(lua_State *L) {
 
 static int l_sock_send(lua_State *L) {
     Sock *s = check_sock(L);
+    if (!s)
+        return luaL_error(L, "socket is closed");
     const char *ip = luaL_checkstring(L, 2);
     int port = (int)luaL_checkinteger(L, 3);
     size_t len;
@@ -181,9 +183,12 @@ static int l_sock_send(lua_State *L) {
 
 static int l_sock_recv(lua_State *L) {
     Sock *s = check_sock(L);
+    if (!s)
+        return luaL_error(L, "socket is closed");
     char buf[2048];
     for (;;) {
         struct sockaddr_in from;
+        memset(&from, 0, sizeof from);
         socklen_t flen = sizeof from;
         int n = (int)recvfrom(s->fd, buf, sizeof buf, 0, (struct sockaddr *)&from, &flen);
         if (n < 0) {
@@ -210,7 +215,10 @@ static int l_sock_recv(lua_State *L) {
 }
 
 static int l_sock_port(lua_State *L) {
-    lua_pushinteger(L, check_sock(L)->port);
+    Sock *s = check_sock(L);
+    if (!s)
+        return luaL_error(L, "socket is closed");
+    lua_pushinteger(L, s->port);
     return 1;
 }
 

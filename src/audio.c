@@ -738,7 +738,7 @@ static void parse_channel(lua_State *L, int t, Channel *ch) {
             s++;
         if (!*s)
             break;
-        char tok[16];
+        char tok[16] = {0};
         int k = 0;
         while (*s && !isspace((unsigned char)*s)) {
             if (k < 15)

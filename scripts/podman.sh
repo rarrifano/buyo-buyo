@@ -7,6 +7,7 @@
 #   scripts/podman.sh run [ARGS]     play inside the container (Wayland/X11, PipeWire/Pulse, GPU, pads)
 #   scripts/podman.sh shell          interactive shell in the container
 #   scripts/podman.sh make [ARGS]    any make target inside the container
+#   scripts/podman.sh windows        cross-compile + package a Windows build into dist/
 #
 # The sources are bind-mounted, the container runs as your own UID
 # (--userns=keep-id), so build/ is owned by you and binaries run on the host too.
@@ -17,7 +18,7 @@ IMAGE="${BUYO_IMAGE:-localhost/buyo-buyo-dev:latest}"
 FEDORA_VERSION="${FEDORA_VERSION:-$(rpm -E %fedora 2>/dev/null || echo 44)}"
 
 usage() {
-  sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
 }
 
 build_image() {
@@ -78,6 +79,10 @@ case "$cmd" in
   make)
     ensure_image
     podman run "${BASE[@]}" "$IMAGE" make "$@"
+    ;;
+  windows)
+    ensure_image
+    podman run "${BASE[@]}" "$IMAGE" make windows
     ;;
   test)
     ensure_image

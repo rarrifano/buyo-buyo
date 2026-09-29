@@ -41,34 +41,59 @@ local function parse_args()
   end
   while i <= #a do
     local k = a[i]
-    if k == "--mods" then opts.mods[#opts.mods + 1] = val()
-    elseif k == "--mode" then opts.mode = val()
-    elseif k == "--game-mode" then opts.game_mode = val()
-    elseif k == "--demo" then opts.mode, opts.demo = "watch", true
-    elseif k == "--char1" then opts.char1 = val()
-    elseif k == "--char2" then opts.char2 = val()
-    elseif k == "--stage" then opts.stage = val()
-    elseif k == "--level" then opts.level = tonumber(val())
-    elseif k == "--level2" then opts.level2 = tonumber(val())
-    elseif k == "--first-to" then opts.first_to = tonumber(val())
-    elseif k == "--seed" then opts.seed = tonumber(val())
-    elseif k == "--host" then opts.host = true
-    elseif k == "--connect" then opts.connect = val()
-    elseif k == "--net-port" then opts.net_port = tonumber(val())
-    elseif k == "--net-bot" then opts.net_bot = tonumber(val())
+    if k == "--mods" then
+      opts.mods[#opts.mods + 1] = val()
+    elseif k == "--mode" then
+      opts.mode = val()
+    elseif k == "--game-mode" then
+      opts.game_mode = val()
+    elseif k == "--demo" then
+      opts.mode, opts.demo = "watch", true
+    elseif k == "--char1" then
+      opts.char1 = val()
+    elseif k == "--char2" then
+      opts.char2 = val()
+    elseif k == "--stage" then
+      opts.stage = val()
+    elseif k == "--level" then
+      opts.level = tonumber(val())
+    elseif k == "--level2" then
+      opts.level2 = tonumber(val())
+    elseif k == "--first-to" then
+      opts.first_to = tonumber(val())
+    elseif k == "--seed" then
+      opts.seed = tonumber(val())
+    elseif k == "--host" then
+      opts.host = true
+    elseif k == "--connect" then
+      opts.connect = val()
+    elseif k == "--net-port" then
+      opts.net_port = tonumber(val())
+    elseif k == "--net-bot" then
+      opts.net_bot = tonumber(val())
     elseif k == "--net-sim" then
-      local lag, jit, loss = (val() or ""):match("^(%d+),(%d+),(%d+)$")
+      local lag, jit, loss = (val() or ""):match "^(%d+),(%d+),(%d+)$"
       opts.net_sim = lag and { lag = tonumber(lag), jitter = tonumber(jit), loss = tonumber(loss) }
-    elseif k == "--no-stun" then opts.no_stun = true
-    elseif k == "--export-skin" then opts.export_skin, opts.export_file = val(), val()
-    elseif k == "--check-content" then opts.check = true
-    elseif k == "--test" then opts.test = true
+    elseif k == "--no-stun" then
+      opts.no_stun = true
+    elseif k == "--export-skin" then
+      opts.export_skin, opts.export_file = val(), val()
+    elseif k == "--check-content" then
+      opts.check = true
+    elseif k == "--test" then
+      opts.test = true
     elseif k == "--shots" then
-      for n in (val() or ""):gmatch("%d+") do opts.shots[tonumber(n)] = true end
-    elseif k == "--shot-prefix" then opts.shot_prefix = val()
-    elseif k == "--turbo" then opts.turbo = tonumber(val())
-    elseif k == "--skip-draw" then opts.skip_draw = true
-    elseif k == "--quit-at-end" then opts.quit_at_end = true
+      for n in (val() or ""):gmatch "%d+" do
+        opts.shots[tonumber(n)] = true
+      end
+    elseif k == "--shot-prefix" then
+      opts.shot_prefix = val()
+    elseif k == "--turbo" then
+      opts.turbo = tonumber(val())
+    elseif k == "--skip-draw" then
+      opts.skip_draw = true
+    elseif k == "--quit-at-end" then
+      opts.quit_at_end = true
     end
     i = i + 1
   end
@@ -80,34 +105,46 @@ local function check_content()
   local Char = require "view.char"
   local Match = require "puyo.match"
   local AI = require "puyo.ai"
-  for _, def in ipairs(Content.list("skins")) do
+  for _, def in ipairs(Content.list "skins") do
     local ok, err = pcall(Skin.build, def)
     if not ok then Content.report("skins", def.id, tostring(err)) end
   end
-  for _, def in ipairs(Content.list("stages")) do
+  for _, def in ipairs(Content.list "stages") do
     local st = Stage.new(def)
-    for _ = 1, 3 do st:update() end
+    for _ = 1, 3 do
+      st:update()
+    end
     st:draw()
   end
-  for _, def in ipairs(Content.list("chars")) do
-    for _, mood in ipairs(Char.MOODS) do Char.texture(def, mood) end
+  for _, def in ipairs(Content.list "chars") do
+    for _, mood in ipairs(Char.MOODS) do
+      Char.texture(def, mood)
+    end
     for event, v in pairs(type(def.voice) == "table" and def.voice or {}) do
       local files = type(v) == "string" and { v } or (type(v) == "table" and v or {})
       for _, f in ipairs(files) do
         local p, err = Content.path(def, f)
-        if not p or sys.exists(p) ~= "file" then Content.report("chars", def.id, "voice." .. event .. ": missing " .. tostring(p or err)) end
+        if not p or sys.exists(p) ~= "file" then
+          Content.report("chars", def.id, "voice." .. event .. ": missing " .. tostring(p or err))
+        end
       end
     end
   end
-  for _, def in ipairs(Content.list("music")) do
+  for _, def in ipairs(Content.list "music") do
     if def.file then
       local p, err = Content.path(def, def.file)
-      if not p or sys.exists(p) ~= "file" then Content.report("music", def.id, "missing file " .. tostring(p or err)) end
+      if not p or sys.exists(p) ~= "file" then
+        Content.report("music", def.id, "missing file " .. tostring(p or err))
+      end
     end
   end
-  for _, def in ipairs(Content.list("modes")) do
-    local m = Match.new { seed = 1, mode = def, rules = { first_to = 1 },
-      on_hook_error = function(_, msg) Content.report("modes", def.id, msg) end }
+  for _, def in ipairs(Content.list "modes") do
+    local m = Match.new {
+      seed = 1,
+      mode = def,
+      rules = { first_to = 1 },
+      on_hook_error = function(_, msg) Content.report("modes", def.id, msg) end,
+    }
     local bots = { AI.new(4, 1), AI.new(4, 2) }
     for _ = 1, 3600 do
       if m.state == "done" then break end
@@ -116,15 +153,26 @@ local function check_content()
     if def.hud then Content.call(def, "hud", m, Content.sandbox_gfx(), 640, 600) end
   end
   local n = Content.count()
-  print(string.format("content: %d chars, %d stages, %d skins, %d modes, %d songs, %d errors",
-    n.chars, n.stages, n.skins, n.modes, n.music, #Content.errors))
-  for _, e in ipairs(Content.errors) do print(string.format("  %s/%s: %s", e.kind, e.id, e.msg)) end
+  print(
+    string.format(
+      "content: %d chars, %d stages, %d skins, %d modes, %d songs, %d errors",
+      n.chars,
+      n.stages,
+      n.skins,
+      n.modes,
+      n.music,
+      #Content.errors
+    )
+  )
+  for _, e in ipairs(Content.errors) do
+    print(string.format("  %s/%s: %s", e.kind, e.id, e.msg))
+  end
   return #Content.errors == 0
 end
 
 local function direct_match()
   local Versus = require "scenes.versus"
-  local chars = Content.list("chars")
+  local chars = Content.list "chars"
   local function pick(id, n)
     if Content.get("chars", id) then return id end
     local d = chars[n] or chars[1]
@@ -135,25 +183,44 @@ local function direct_match()
   local c2 = pick(opts.char2, 2)
   local c2def = Content.get("chars", c2)
   return Versus.new {
-    kind = opts.mode, demo = opts.demo, quit_at_end = opts.quit_at_end,
+    kind = opts.mode,
+    demo = opts.demo,
+    quit_at_end = opts.quit_at_end,
     seed = opts.seed or os.time(),
     mode_id = opts.game_mode or Settings.data.mode or "tsu",
     first_to = opts.first_to or (opts.demo and 1) or Settings.data.first_to,
-    stage_id = opts.stage or (c2def and c2def.stage) or "default", music_id = "auto",
+    stage_id = opts.stage or (c2def and c2def.stage) or "default",
+    music_id = "auto",
     colors = Settings.data.colors,
     players = {
-      { char = pick(opts.char1, 1), cpu = cpu1, level = opts.level or 3, hard_drop = Settings.data.hard_drop },
-      { char = c2, cpu = cpu2, level = opts.level2 or opts.level or 3, hard_drop = Settings.data.hard_drop },
+      {
+        char = pick(opts.char1, 1),
+        cpu = cpu1,
+        level = opts.level or 3,
+        hard_drop = Settings.data.hard_drop,
+      },
+      {
+        char = c2,
+        cpu = cpu2,
+        level = opts.level2 or opts.level or 3,
+        hard_drop = Settings.data.hard_drop,
+      },
     },
   }
 end
 
 function App.load()
   parse_args()
-  math.randomseed(opts.seed or os.time())
+  -- no argument = time + ASLR address: two processes started in the same
+  -- second must not share random numbers (netplay nonces!)
+  if opts.seed then
+    math.randomseed(opts.seed)
+  else
+    math.randomseed()
+  end
   if opts.test then
-    local ok = require("tests.rules_test")()
-    ok = require("tests.netplay_test")() and ok
+    local ok = require "tests.rules_test"()
+    ok = require "tests.netplay_test"() and ok
     os.exit(ok and 0 or 1, true)
   end
   if not sys.headless() then Settings.load() end -- tests always use defaults
@@ -183,8 +250,14 @@ function App.load()
 
   if opts.host or opts.connect then
     local Online = require "scenes.online"
-    Scene.go(Online.new { connect = opts.connect, bot = opts.net_bot, sim = opts.net_sim,
-                          no_stun = opts.no_stun, quit_at_end = opts.quit_at_end, port = opts.net_port })
+    Scene.go(Online.new {
+      connect = opts.connect,
+      bot = opts.net_bot,
+      sim = opts.net_sim,
+      no_stun = opts.no_stun,
+      quit_at_end = opts.quit_at_end,
+      port = opts.net_port,
+    })
   elseif opts.mode then
     Scene.go(direct_match())
   else
@@ -192,7 +265,7 @@ function App.load()
   end
 end
 
-function App.update(dt)
+function App.update(_)
   for _ = 1, opts.turbo or 1 do
     frame = frame + 1
     if opts.shots[frame] then shot_due = frame end

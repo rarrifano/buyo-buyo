@@ -25,13 +25,24 @@ function Skin.sheet(def)
     if not img then error(e, 0) end
     local w, h = img:size()
     if w < 16 * cell or h < 6 * cell then
-      error(string.format("%s is %dx%d, expected at least %dx%d (16 x 6 or 7 cells of %d px)",
-        def.sheet, w, h, 16 * cell, 6 * cell, cell), 0)
+      error(
+        string.format(
+          "%s is %dx%d, expected at least %dx%d (16 x 6 or 7 cells of %d px)",
+          def.sheet,
+          w,
+          h,
+          16 * cell,
+          6 * cell,
+          cell
+        ),
+        0
+      )
     end
     return img
   end
   local img = gfx.image(16 * cell, 7 * cell)
-  local ok, err = pcall(def.paint, img, cell, { colors = def.colors or Content.PALETTE, cell = cell })
+  local ok, err =
+    pcall(def.paint, img, cell, { colors = def.colors or Content.PALETTE, cell = cell })
   if not ok then error("paint() failed: " .. tostring(err), 0) end
   return img
 end
@@ -42,7 +53,11 @@ function Skin.build(def)
   local filter = def.filter == "nearest" and "nearest" or "linear"
   local _, h = img:size()
   local sk = setmetatable({
-    id = def.id, def = def, cell = cell, body = {}, face = {},
+    id = def.id,
+    def = def,
+    cell = cell,
+    body = {},
+    face = {},
     faces = def.faces ~= false and h >= 7 * cell,
     colors = def.colors or Content.PALETTE,
   }, Skin)
@@ -64,15 +79,23 @@ end
 function Skin.fallback()
   if built["__fallback"] then return built["__fallback"] end
   local cell = 32
-  local sk = setmetatable({ id = "__fallback", cell = cell, body = {}, face = {}, faces = false,
-                            colors = Content.PALETTE }, Skin)
+  local sk = setmetatable({
+    id = "__fallback",
+    cell = cell,
+    body = {},
+    face = {},
+    faces = false,
+    colors = Content.PALETTE,
+  }, Skin)
   for v = 1, 6 do
     local img = gfx.image(cell, cell)
     local c = Content.PALETTE[v]
     img:fill(gfx.shape():circle(cell / 2, cell / 2, cell * 0.44), c[1], c[2], c[3], 255)
     local tex = img:texture()
     sk.body[v] = {}
-    for m = 0, 15 do sk.body[v][m] = tex end
+    for m = 0, 15 do
+      sk.body[v][m] = tex
+    end
   end
   built["__fallback"] = sk
   return sk

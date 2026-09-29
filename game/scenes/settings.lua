@@ -5,7 +5,6 @@ local Controls = require "core.controls"
 local Settings = require "core.settings"
 local Sound = require "core.sound"
 local Content = require "core.content"
-local AI = require "puyo.ai"
 local UI = require "view.ui"
 local Skin = require "view.skin"
 local Backdrop = require "view.backdrop"
@@ -15,13 +14,23 @@ SettingsScene.__index = SettingsScene
 
 local function skin_choices()
   local list = { "character" }
-  for _, d in ipairs(Content.list("skins")) do list[#list + 1] = d.id end
+  for _, d in ipairs(Content.list "skins") do
+    list[#list + 1] = d.id
+  end
   return list
 end
 
 local ITEMS = {
-  { key = "skin", label = "PUYO SKIN", choices = skin_choices,
-    fmt = function(v) if v == "character" then return "BY CHARACTER" end local d = Content.get("skins", v); return d and d.name:upper() or v end },
+  {
+    key = "skin",
+    label = "PUYO SKIN",
+    choices = skin_choices,
+    fmt = function(v)
+      if v == "character" then return "BY CHARACTER" end
+      local d = Content.get("skins", v)
+      return d and d.name:upper() or v
+    end,
+  },
   { key = "colors", label = "COLORS", min = 3, max = 5 },
   { key = "hard_drop", label = "HARD DROP (UP)", bool = true },
   { key = "ghost", label = "LANDING GHOST", bool = true },
@@ -33,9 +42,7 @@ local ITEMS = {
   { label = "BACK", action = "back" },
 }
 
-function SettingsScene.new()
-  return setmetatable({ t = 0, sel = 1, page = "list" }, SettingsScene)
-end
+function SettingsScene.new() return setmetatable({ t = 0, sel = 1, page = "list" }, SettingsScene) end
 
 local function value_text(it)
   local v = Settings.data[it.key]
@@ -51,21 +58,27 @@ function SettingsScene:change(it, dir)
   elseif it.choices then
     local list = it.choices()
     local i = 1
-    for k, v in ipairs(list) do if v == d[it.key] then i = k end end
+    for k, v in ipairs(list) do
+      if v == d[it.key] then i = k end
+    end
     d[it.key] = list[(i - 1 + dir) % #list + 1]
     UI.skin = Skin.get(d.skin)
   else
     local v = d[it.key] + dir
-    if v < it.min then v = it.max elseif v > it.max then v = it.min end
+    if v < it.min then
+      v = it.max
+    elseif v > it.max then
+      v = it.min
+    end
     d[it.key] = v
   end
   Settings.apply()
-  Sound.play("menu_move")
+  Sound.play "menu_move"
 end
 
 function SettingsScene:back()
   Settings.save()
-  Sound.play("menu_back")
+  Sound.play "menu_back"
   Scene.go(require("scenes.title").new(6))
 end
 
@@ -76,21 +89,27 @@ function SettingsScene:update()
   if self.page == "controls" then
     if m.pressed.confirm or m.pressed.back then
       self.page = "list"
-      Sound.play("menu_back")
+      Sound.play "menu_back"
     end
     return
   end
-  if m:rep("up") then self.sel = (self.sel - 2) % #ITEMS + 1; Sound.play("menu_move") end
-  if m:rep("down") then self.sel = self.sel % #ITEMS + 1; Sound.play("menu_move") end
+  if m:rep "up" then
+    self.sel = (self.sel - 2) % #ITEMS + 1
+    Sound.play "menu_move"
+  end
+  if m:rep "down" then
+    self.sel = self.sel % #ITEMS + 1
+    Sound.play "menu_move"
+  end
   local it = ITEMS[self.sel]
   if it.key then
-    if m:rep("left") then self:change(it, -1) end
-    if m:rep("right") then self:change(it, 1) end
+    if m:rep "left" then self:change(it, -1) end
+    if m:rep "right" then self:change(it, 1) end
     if m.pressed.confirm then self:change(it, 1) end
   elseif m.pressed.confirm then
     if it.action == "controls" then
       self.page = "controls"
-      Sound.play("menu_ok")
+      Sound.play "menu_ok"
     else
       return self:back()
     end
@@ -130,15 +149,31 @@ function SettingsScene:draw()
     if it.key then
       UI.text(it.label, 300, y, 3, "left", col)
       local v = value_text(it)
-      UI.text(on and ("\001 " .. v .. " \002") or v, 980, y, 3, "right", on and UI.YELLOW or UI.GRAY)
+      UI.text(
+        on and ("\001 " .. v .. " \002") or v,
+        980,
+        y,
+        3,
+        "right",
+        on and UI.YELLOW or UI.GRAY
+      )
     else
       UI.text(it.label, 640, y, 3, "center", col)
     end
   end
   if ITEMS[self.sel].key == "skin" and UI.skin then
-    for v = 1, 5 do UI.skin:puyo(v, 1100, 150 + (v - 1) * 56, 48, 0, "open") end
+    for v = 1, 5 do
+      UI.skin:puyo(v, 1100, 150 + (v - 1) * 56, 48, 0, "open")
+    end
   end
-  UI.text("\003\004 SELECT    \001\002 CHANGE    X / ESC  SAVE & BACK", 640, 676, 2, "center", UI.DIM)
+  UI.text(
+    "\003\004 SELECT    \001\002 CHANGE    X / ESC  SAVE & BACK",
+    640,
+    676,
+    2,
+    "center",
+    UI.DIM
+  )
 end
 
 return SettingsScene

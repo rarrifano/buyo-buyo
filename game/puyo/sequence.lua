@@ -9,9 +9,11 @@ Sequence.__index = Sequence
 function Sequence.new(seed, ncolors)
   local s = setmetatable({ rng = U.rng(seed), ncolors = ncolors, list = {} }, Sequence)
   -- pick which of the 5 colors are used this round
-  local all = s.rng:shuffle({ 1, 2, 3, 4, 5 })
+  local all = s.rng:shuffle { 1, 2, 3, 4, 5 }
   s.palette = {}
-  for i = 1, ncolors do s.palette[i] = all[i] end
+  for i = 1, ncolors do
+    s.palette[i] = all[i]
+  end
   s:refill()
   -- the first two pairs only use three colors, for gentler openings
   for n = 1, 2 do
@@ -24,7 +26,9 @@ end
 function Sequence:refill()
   local bag = {}
   for _, c in ipairs(self.palette) do
-    for _ = 1, 16 do bag[#bag + 1] = c end
+    for _ = 1, 16 do
+      bag[#bag + 1] = c
+    end
   end
   self.rng:shuffle(bag)
   for i = 1, #bag, 2 do
@@ -34,7 +38,9 @@ end
 
 -- pair n = { pivot color, satellite color }
 function Sequence:get(n)
-  while #self.list < n do self:refill() end
+  while #self.list < n do
+    self:refill()
+  end
   return self.list[n]
 end
 
@@ -44,7 +50,9 @@ function Sequence:save() return { s = self.rng.s, n = #self.list } end
 
 function Sequence:load(st)
   self.rng.s = st.s
-  for i = #self.list, st.n + 1, -1 do self.list[i] = nil end
+  for i = #self.list, st.n + 1, -1 do
+    self.list[i] = nil
+  end
 end
 
 return Sequence

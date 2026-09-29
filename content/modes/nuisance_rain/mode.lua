@@ -5,8 +5,8 @@
 -- netplay peers replay it): only use `m`, `p` and their data, keep your
 -- state in m.data, and use m.rng:int(a, b) instead of math.random.
 -- Full reference: docs/MODES.md
-local EVERY = 20 * 60   -- frames between showers
-local AMOUNT = 6        -- one row
+local EVERY = 20 * 60 -- frames between showers
+local AMOUNT = 6 -- one row
 
 return {
   name = "Nuisance Rain",
@@ -15,26 +15,24 @@ return {
   order = 3,
   rules = { first_to = 2 },
 
-  init = function(m)
-    m.data.showers = 0
-  end,
+  init = function(m) m.data.showers = 0 end,
 
-  round_start = function(m)
-    m.data.next = EVERY
-  end,
+  round_start = function(m) m.data.next = EVERY end,
 
   -- called once per frame while a round is being played
   frame = function(m)
     if m.frames >= m.data.next then
       m.data.next = m.data.next + EVERY
       m.data.showers = m.data.showers + 1
-      for _, p in ipairs(m.players) do p:add_garbage(AMOUNT) end
+      for _, p in ipairs(m.players) do
+        p:add_garbage(AMOUNT)
+      end
       m:emit(nil, "announce", { text = "RAIN!", color = { 150, 200, 255 } })
     end
   end,
 
   -- called for every chain link; return the (possibly modified) link
-  link = function(m, p, link)
+  link = function(m, _, link)
     if link.all_clear then link.garbage = link.garbage + m.R.all_clear_garbage end
     return link
   end,

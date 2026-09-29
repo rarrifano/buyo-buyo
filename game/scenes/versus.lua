@@ -8,7 +8,6 @@ local Sound = require "core.sound"
 local Content = require "core.content"
 local Jukebox = require "core.jukebox"
 local U = require "core.util"
-local Rules = require "puyo.rules"
 local Match = require "puyo.match"
 local Player = require "puyo.player"
 local AI = require "puyo.ai"
@@ -31,11 +30,20 @@ local BTN = Player.BUTTONS
 
 -- a random CPU vs CPU match for the title screen attract mode
 function Versus.demo_config()
-  local chars = Content.list("chars")
-  local function pick() local d = chars[math.random(1, math.max(1, #chars))]; return d and d.id end
+  local chars = Content.list "chars"
+  local function pick()
+    local d = chars[math.random(1, math.max(1, #chars))]
+    return d and d.id
+  end
   return {
-    kind = "watch", demo = true, seed = os.time(), mode_id = "tsu", first_to = 1,
-    stage_id = "default", music_id = "auto", colors = Settings.data.colors,
+    kind = "watch",
+    demo = true,
+    seed = os.time(),
+    mode_id = "tsu",
+    first_to = 1,
+    stage_id = "default",
+    music_id = "auto",
+    colors = Settings.data.colors,
     players = { { char = pick(), cpu = true, level = 3 }, { char = pick(), cpu = true, level = 4 } },
   }
 end
@@ -44,15 +52,20 @@ local function char_def(p)
   local d = Content.get("chars", p.char)
   if d then return d end
   -- the remote player's character is not installed here: show a stand-in
-  return { id = p.char or "?", kind = "chars", name = p.char_name or p.char or "???",
-           color = p.char_color or { 200, 200, 200 } }
+  return {
+    id = p.char or "?",
+    kind = "chars",
+    name = p.char_name or p.char or "???",
+    color = p.char_color or { 200, 200, 200 },
+  }
 end
 
 -- cfg: see Select:build_config (kind, seed, mode_id, first_to, stage_id,
 -- music_id, colors, players = { {char, cpu, remote, level, hard_drop}, ... },
 -- session, local_player, delay, demo, quit_at_end, net_bot)
 function Versus.new(cfg)
-  local self = setmetatable({ cfg = cfg, t = 0, ai = {}, ctl = {}, fx = FX.new(), mood_t = { 0, 0 } }, Versus)
+  local self =
+    setmetatable({ cfg = cfg, t = 0, ai = {}, ctl = {}, fx = FX.new(), mood_t = { 0, 0 } }, Versus)
   self.mode = Content.get("modes", cfg.mode_id) or Content.pick("modes", "tsu")
   self.chars = { char_def(cfg.players[1]), char_def(cfg.players[2]) }
   local skin_pref = Settings.data.skin
@@ -69,7 +82,9 @@ function Versus.new(cfg)
     rules = { first_to = cfg.first_to },
     hard_drop = { cfg.players[1].hard_drop ~= false, cfg.players[2].hard_drop ~= false },
     on_event = function(p, name, d) self:on_event(p, name, d) end,
-    on_hook_error = function(_, msg) Content.report("modes", self.mode and self.mode.id or "?", msg) end,
+    on_hook_error = function(_, msg)
+      Content.report("modes", self.mode and self.mode.id or "?", msg)
+    end,
   }
   for i = 1, 2 do
     local p = cfg.players[i]
@@ -83,7 +98,8 @@ function Versus.new(cfg)
   self.names = {}
   for i = 1, 2 do
     local p = cfg.players[i]
-    local tag = p.cpu and ("CPU " .. AI.LEVELS[p.level or 2].name) or (p.remote and "REMOTE" or (i == 1 and "1P" or "2P"))
+    local tag = p.cpu and ("CPU " .. AI.LEVELS[p.level or 2].name)
+      or (p.remote and "REMOTE" or (i == 1 and "1P" or "2P"))
     self.names[i] = self.chars[i].name:upper()
     self.tags = self.tags or {}
     self.tags[i] = tag
@@ -97,8 +113,13 @@ function Versus:build_fields()
   self.fields = {}
   for i = 1, 2 do
     local human = not self.cfg.players[i].cpu and not self.cfg.players[i].remote
-    self.fields[i] = Field.new(self.match.players[i], FIELD_X[i], FIELD_Y, i == 1 and -1 or 1,
-                               { skin = self.skins[i], ghost = Settings.data.ghost and human })
+    self.fields[i] = Field.new(
+      self.match.players[i],
+      FIELD_X[i],
+      FIELD_Y,
+      i == 1 and -1 or 1,
+      { skin = self.skins[i], ghost = Settings.data.ghost and human }
+    )
   end
 end
 
@@ -116,7 +137,9 @@ function Versus:enter()
 end
 
 function Versus:leave()
-  for _, c in pairs(self.ctl) do Controls.unregister(c) end
+  for _, c in pairs(self.ctl) do
+    Controls.unregister(c)
+  end
 end
 
 function Versus:play_battle_music()
@@ -170,7 +193,13 @@ function Versus:on_event(p, name, d)
     if d.n >= 30 then Char.voice(def, "attack", d.n, pan) end
   elseif name == "offset" then
     local tx, ty = f:tray_point()
-    self.fx:bolt(f.last_pop_x or f.x + f.w / 2, f.last_pop_y or f.y + f.h / 2, tx, ty, { 160, 220, 255 })
+    self.fx:bolt(
+      f.last_pop_x or f.x + f.w / 2,
+      f.last_pop_y or f.y + f.h / 2,
+      tx,
+      ty,
+      { 160, 220, 255 }
+    )
     Sound.play("offset", pan)
   elseif name == "all_clear" then
     Sound.play("all_clear", pan)
@@ -184,11 +213,15 @@ function Versus:on_match_event(name, d)
   local m = self.match
   if not m then return end -- events emitted while the match is being created
   if name == "round_start" then
-    for _, f in ipairs(self.fields or {}) do f:reset() end
-    for _, ai in pairs(self.ai) do ai:reset() end
+    for _, f in ipairs(self.fields or {}) do
+      f:reset()
+    end
+    for _, ai in pairs(self.ai) do
+      ai:reset()
+    end
     if m.round > 1 then self:play_battle_music() end
   elseif name == "go" then
-    Sound.play("go")
+    Sound.play "go"
   elseif name == "round_over" then
     for i = 1, 2 do
       local p, tot = m.players[i], self.totals[i]
@@ -197,19 +230,36 @@ function Versus:on_match_event(name, d)
       tot.sent = tot.sent + p.sent
     end
     local w = d.winner
-    local me = self.cfg.kind == "online" and self.cfg.local_player or (self.cfg.kind == "cpu" and 1 or nil)
+    local me = self.cfg.kind == "online" and self.cfg.local_player
+      or (self.cfg.kind == "cpu" and 1 or nil)
     Jukebox.play((me and w ~= me and w ~= 0) and "lose" or "win")
     if w > 0 then
       Char.voice(self.chars[w], "win", 1, PAN[w])
       Char.voice(self.chars[3 - w], "lose", 1, PAN[3 - w])
     end
     if sys.headless() then
-      print(string.format("[round %d] winner=%s  score %d/%d  max chain %d/%d  sent %d/%d  time %.1fs",
-        m.round, w == 0 and "draw" or ("P" .. w), m.players[1].score, m.players[2].score,
-        m.players[1].max_chain, m.players[2].max_chain, m.players[1].sent, m.players[2].sent, m.frames / 60))
+      print(
+        string.format(
+          "[round %d] winner=%s  score %d/%d  max chain %d/%d  sent %d/%d  time %.1fs",
+          m.round,
+          w == 0 and "draw" or ("P" .. w),
+          m.players[1].score,
+          m.players[2].score,
+          m.players[1].max_chain,
+          m.players[2].max_chain,
+          m.players[1].sent,
+          m.players[2].sent,
+          m.frames / 60
+        )
+      )
     end
   elseif name == "announce" then
-    self.fx:popup(tostring(d.text or ""), 640, 330, { scale = 5, col = d.color or UI.YELLOW, life = 90, rise = 0.3 })
+    self.fx:popup(
+      tostring(d.text or ""),
+      640,
+      330,
+      { scale = 5, col = d.color or UI.YELLOW, life = 90, rise = 0.3 }
+    )
   end
 end
 
@@ -276,7 +326,7 @@ function Versus:update_online()
   end
   if self.results then
     ng.rb:idle()
-    if self.t % 6 == 0 and self.results.want_rematch then s:send_lobby({ rematch = true }) end
+    if self.t % 6 == 0 and self.results.want_rematch then s:send_lobby { rematch = true } end
     if self.cfg.local_player == 1 and self.results.want_rematch and self.peer_rematch then
       if not self.rematch_cfg then
         self.rematch_cfg = U.copy(self.cfg)
@@ -298,7 +348,9 @@ function Versus:launch_rematch(cfg)
   cfg.delay = self.cfg.delay
   cfg.net_bot = self.cfg.net_bot
   cfg.quit_at_end = self.cfg.quit_at_end
-  for i = 1, 2 do cfg.players[i].remote = i ~= cfg.local_player end
+  for i = 1, 2 do
+    cfg.players[i].remote = i ~= cfg.local_player
+  end
   self.relaunched = true
   Scene.go(Versus.new(cfg))
 end
@@ -325,7 +377,7 @@ function Versus:update()
     end
   elseif menu.pressed.start and not self.results then
     self.paused = { sel = 1 }
-    Sound.play("menu_ok")
+    Sound.play "menu_ok"
     return
   end
 
@@ -346,12 +398,29 @@ function Versus:update()
     if self.cfg.quit_at_end then
       if not self.quitting then
         self.quitting = true
-        print(string.format("[match] %s wins %d-%d (checksum %08x)", self.names[m:champion()], m.wins[1], m.wins[2],
-          m:checksum()))
+        print(
+          string.format(
+            "[match] %s wins %d-%d (checksum %08x)",
+            self.names[m:champion()],
+            m.wins[1],
+            m.wins[2],
+            m:checksum(true)
+          )
+        )
         if self.net then
           local st = self.net:stats()
-          print(string.format("[net] frames %d, rollbacks %d (max %d frames), stalls %d, skips %d, ping %dms, desync %s",
-            self.net.rb.frame, st.rollbacks, st.max_depth, st.stalls, st.skips, st.ping, tostring(self.net.desync)))
+          print(
+            string.format(
+              "[net] frames %d, rollbacks %d (max %d frames), stalls %d, skips %d, ping %dms, desync %s",
+              self.net.rb.frame,
+              st.rollbacks,
+              st.max_depth,
+              st.stalls,
+              st.skips,
+              st.ping,
+              tostring(self.net.desync)
+            )
+          )
         end
         if self.net then self.net.s:destroy() end
         sys.quit()
@@ -368,17 +437,28 @@ local PAUSE_ITEMS = { "RESUME", "RESTART", "CHARACTER SELECT", "QUIT TO TITLE" }
 
 function Versus:update_pause()
   local menu, ps = Controls.menu, self.paused
-  if menu:rep("up") then ps.sel = (ps.sel - 2) % #PAUSE_ITEMS + 1; Sound.play("menu_move") end
-  if menu:rep("down") then ps.sel = ps.sel % #PAUSE_ITEMS + 1; Sound.play("menu_move") end
+  if menu:rep "up" then
+    ps.sel = (ps.sel - 2) % #PAUSE_ITEMS + 1
+    Sound.play "menu_move"
+  end
+  if menu:rep "down" then
+    ps.sel = ps.sel % #PAUSE_ITEMS + 1
+    Sound.play "menu_move"
+  end
   if menu.pressed.back or (menu.pressed.start and not menu.pressed.confirm) then
     self.paused = nil
-    Sound.play("menu_back")
+    Sound.play "menu_back"
   elseif menu.pressed.confirm then
-    Sound.play("menu_ok")
-    if ps.sel == 1 then self.paused = nil
-    elseif ps.sel == 2 then self:restart()
-    elseif ps.sel == 3 then self:to_select()
-    else self:quit_to_title() end
+    Sound.play "menu_ok"
+    if ps.sel == 1 then
+      self.paused = nil
+    elseif ps.sel == 2 then
+      self:restart()
+    elseif ps.sel == 3 then
+      self:to_select()
+    else
+      self:quit_to_title()
+    end
   end
 end
 
@@ -392,32 +472,51 @@ function Versus:update_results()
   local items = self:result_items()
   r.t = r.t + 1
   if r.t < 30 or r.want_rematch then return end
-  if self.cfg.net_bot and self.net then r.want_rematch = true return end
-  if menu:rep("up") or menu:rep("left") then r.sel = (r.sel - 2) % #items + 1; Sound.play("menu_move") end
-  if menu:rep("down") or menu:rep("right") then r.sel = r.sel % #items + 1; Sound.play("menu_move") end
+  if self.cfg.net_bot and self.net then
+    r.want_rematch = true
+    return
+  end
+  if menu:rep "up" or menu:rep "left" then
+    r.sel = (r.sel - 2) % #items + 1
+    Sound.play "menu_move"
+  end
+  if menu:rep "down" or menu:rep "right" then
+    r.sel = r.sel % #items + 1
+    Sound.play "menu_move"
+  end
   if menu.pressed.confirm then
-    Sound.play("menu_ok")
+    Sound.play "menu_ok"
     local item = items[r.sel]
     if item == "REMATCH" then
-      if self.net then r.want_rematch = true else self:restart() end
+      if self.net then
+        r.want_rematch = true
+      else
+        self:restart()
+      end
     elseif item == "CHARACTER SELECT" then
       self:to_select()
     else
       self:quit_to_title()
     end
   elseif menu.pressed.back then
-    Sound.play("menu_back")
+    Sound.play "menu_back"
     self:quit_to_title()
   end
 end
 
-function Versus:key(name, down)
+function Versus:key(_, down)
   if down and self.cfg.demo then self.any_key = true end
 end
 
 function Versus:focus(on)
-  if not on and not self.paused and not self.results and not self.cfg.demo
-     and self.cfg.kind ~= "watch" and not self.net then
+  if
+    not on
+    and not self.paused
+    and not self.results
+    and not self.cfg.demo
+    and self.cfg.kind ~= "watch"
+    and not self.net
+  then
     self.paused = { sel = 1 }
   end
 end
@@ -472,16 +571,20 @@ function Versus:draw_center()
   if self.mode and type(self.mode.hud) == "function" then
     self.hud_gfx = self.hud_gfx or Content.sandbox_gfx()
     Content.call(self.mode, "hud", m, self.hud_gfx, cx, 566)
-    gfx.blend("alpha")
+    gfx.blend "alpha"
   end
   if self.net then
     local st = self.net:stats()
     UI.text(string.format("PING %d  DELAY %d", st.ping, st.delay), cx, 612, 1.5, "center", UI.DIM)
-    UI.text(string.format("ROLLBACK %d", st.depth), cx, 630, 1.5, "center",
-            st.depth > 4 and { 255, 180, 120 } or UI.DIM)
-    if self.net.stalled > 20 then
-      UI.text("WAITING...", cx, 654, 2, "center", { 255, 180, 120 })
-    end
+    UI.text(
+      string.format("ROLLBACK %d", st.depth),
+      cx,
+      630,
+      1.5,
+      "center",
+      st.depth > 4 and { 255, 180, 120 } or UI.DIM
+    )
+    if self.net.stalled > 20 then UI.text("WAITING...", cx, 654, 2, "center", { 255, 180, 120 }) end
   end
   if self.cfg.demo then
     local a = (self.t // 30) % 2 == 0 and 255 or 120
@@ -494,7 +597,14 @@ function Versus:draw_header()
     local f = self.fields[i]
     local col = self.chars[i].color or (i == 1 and UI.P1 or UI.P2)
     UI.text(self.names[i], f.x + f.w / 2, 10, 3, "center", col)
-    UI.text(self.tags[i], f.x + (i == 1 and 0 or f.w), 40, 1.5, i == 1 and "left" or "right", UI.DIM)
+    UI.text(
+      self.tags[i],
+      f.x + (i == 1 and 0 or f.w),
+      40,
+      1.5,
+      i == 1 and "left" or "right",
+      UI.DIM
+    )
   end
 end
 
@@ -542,13 +652,20 @@ function Versus:draw_results()
   gfx.rect(0, 0, 1280, 720)
   if r.t < 10 then return end
   UI.panel(320, 130, 640, 480)
-  local me = self.cfg.kind == "online" and self.cfg.local_player or (self.cfg.kind == "cpu" and 1 or nil)
+  local me = self.cfg.kind == "online" and self.cfg.local_player
+    or (self.cfg.kind == "cpu" and 1 or nil)
   local title
-  if me then title = champ == me and "YOU WIN!" or "YOU LOSE..."
-  else title = self.names[champ] .. " WINS!" end
+  if me then
+    title = champ == me and "YOU WIN!" or "YOU LOSE..."
+  else
+    title = self.names[champ] .. " WINS!"
+  end
   local tscale = #title > 12 and 4 or 5
-  if not me or champ == me then UI.rainbow(title, 640, 166, tscale, self.t, "center")
-  else UI.outline(title, 640, 166, tscale, "center", { 170, 170, 220 }) end
+  if not me or champ == me then
+    UI.rainbow(title, 640, 166, tscale, self.t, "center")
+  else
+    UI.outline(title, 640, 166, tscale, "center", { 170, 170, 220 })
+  end
   Char.draw(self.chars[champ], 400, 214, 120, 120, "win", self.t, false)
   local rows = {
     { "ROUNDS", m.wins[1], m.wins[2] },
@@ -565,7 +682,14 @@ function Versus:draw_results()
     UI.text(tostring(row[3]), 880, y, 2, "center", UI.WHITE)
   end
   if r.want_rematch then
-    UI.text(self.peer_rematch and "STARTING..." or "WAITING FOR THE OTHER PLAYER...", 640, 530, 2, "center", UI.YELLOW)
+    UI.text(
+      self.peer_rematch and "STARTING..." or "WAITING FOR THE OTHER PLAYER...",
+      640,
+      530,
+      2,
+      "center",
+      UI.YELLOW
+    )
   else
     UI.menu(self:result_items(), r.sel, 640, 516, self.t, { scale = 3, gap = 40 })
   end
@@ -584,13 +708,24 @@ function Versus:draw_overlays()
     UI.text("LEAVE THE MATCH?", 640, 326, 3, "center", UI.YELLOW)
     UI.text("Z/ENTER: LEAVE    ESC: KEEP PLAYING", 640, 372, 2, "center", UI.WHITE)
   end
-  local err = self.net_error or (self.net and self.net.desync and
-    ("DESYNC at frame " .. self.net.desync .. " - please report it with both game versions"))
+  local err = self.net_error
+    or (
+      self.net
+      and self.net.desync
+      and ("DESYNC at frame " .. self.net.desync .. " - please report it with both game versions")
+    )
   if err then
     gfx.color(0, 0, 0, 180)
     gfx.rect(0, 0, 1280, 720)
     UI.panel(240, 260, 800, 200)
-    UI.outline(self.net_error and "DISCONNECTED" or "DESYNC", 640, 290, 4, "center", { 255, 120, 120 })
+    UI.outline(
+      self.net_error and "DISCONNECTED" or "DESYNC",
+      640,
+      290,
+      4,
+      "center",
+      { 255, 120, 120 }
+    )
     UI.text(tostring(err):upper(), 640, 360, 2, "center", UI.WHITE)
     UI.text("PRESS Z / ENTER", 640, 410, 2, "center", UI.DIM)
   end

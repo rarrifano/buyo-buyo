@@ -28,14 +28,55 @@ local AI = {}
 AI.__index = AI
 
 AI.LEVELS = {
-  { name = "EASY",   think = 50, interval = 14, soft = 0.0, noise = 700, potential = false,
-    lookahead = false, fire_chain = 1, fire_garbage = 0,  mistake = 0.30 },
-  { name = "NORMAL", think = 26, interval = 7,  soft = 0.35, noise = 160, potential = true,
-    lookahead = false, fire_chain = 3, fire_garbage = 12, mistake = 0.05 },
-  { name = "HARD",   think = 12, interval = 4,  soft = 1.0, noise = 40,  potential = true,
-    lookahead = true,  fire_chain = 5, fire_garbage = 24, mistake = 0 },
-  { name = "MANIAC", think = 5,  interval = 2,  soft = 1.0, noise = 0,   potential = true,
-    lookahead = true,  fire_chain = 7, fire_garbage = 40, mistake = 0, hard_drop = true },
+  {
+    name = "EASY",
+    think = 50,
+    interval = 14,
+    soft = 0.0,
+    noise = 700,
+    potential = false,
+    lookahead = false,
+    fire_chain = 1,
+    fire_garbage = 0,
+    mistake = 0.30,
+  },
+  {
+    name = "NORMAL",
+    think = 26,
+    interval = 7,
+    soft = 0.35,
+    noise = 160,
+    potential = true,
+    lookahead = false,
+    fire_chain = 3,
+    fire_garbage = 12,
+    mistake = 0.05,
+  },
+  {
+    name = "HARD",
+    think = 12,
+    interval = 4,
+    soft = 1.0,
+    noise = 40,
+    potential = true,
+    lookahead = true,
+    fire_chain = 5,
+    fire_garbage = 24,
+    mistake = 0,
+  },
+  {
+    name = "MANIAC",
+    think = 5,
+    interval = 2,
+    soft = 1.0,
+    noise = 0,
+    potential = true,
+    lookahead = true,
+    fire_chain = 7,
+    fire_garbage = 40,
+    mistake = 0,
+    hard_drop = true,
+  },
 }
 
 ------------------------------------------------------------------------
@@ -55,7 +96,9 @@ for y = 1, VIS do
 end
 
 local mark, stamp = {}, 0
-for i = 1, N do mark[i] = 0 end
+for i = 1, N do
+  mark[i] = 0
+end
 local queue, popped = {}, {}
 
 -- resolves all chains in place under rules R; returns chain length and score
@@ -84,7 +127,9 @@ local function simulate(c, R)
           end
         end
         if qt >= pop then
-          for k = 1, qt do popped[npop + k] = queue[k] end
+          for k = 1, qt do
+            popped[npop + k] = queue[k]
+          end
           npop = npop + qt
           gb = gb + GBT[qt]
           local bit = 1 << v
@@ -98,9 +143,15 @@ local function simulate(c, R)
     if npop == 0 then break end
     chain = chain + 1
     local bonus = CPT[math.min(chain, 100)] + CBT[ncol] + gb
-    if bonus < 1 then bonus = 1 elseif bonus > 999 then bonus = 999 end
+    if bonus < 1 then
+      bonus = 1
+    elseif bonus > 999 then
+      bonus = 999
+    end
     score = score + 10 * npop * bonus
-    for k = 1, npop do c[popped[k]] = 0 end
+    for k = 1, npop do
+      c[popped[k]] = 0
+    end
     for k = 1, npop do
       local nb = NB[popped[k]]
       for q = 1, #nb do
@@ -145,13 +196,15 @@ for x = 1, W do
   PLACEMENTS[#PLACEMENTS + 1] = { x = x, r = 0 }
   PLACEMENTS[#PLACEMENTS + 1] = { x = x, r = 2 }
 end
-for x = 1, W - 1 do PLACEMENTS[#PLACEMENTS + 1] = { x = x, r = 1 } end
-for x = 2, W do PLACEMENTS[#PLACEMENTS + 1] = { x = x, r = 3 } end
+for x = 1, W - 1 do
+  PLACEMENTS[#PLACEMENTS + 1] = { x = x, r = 1 }
+end
+for x = 2, W do
+  PLACEMENTS[#PLACEMENTS + 1] = { x = x, r = 3 }
+end
 AI.PLACEMENTS = PLACEMENTS
 
-local function other_x(pl)
-  return pl.x + (pl.r == 1 and 1 or pl.r == 3 and -1 or 0)
-end
+local function other_x(pl) return pl.x + (pl.r == 1 and 1 or pl.r == 3 and -1 or 0) end
 
 local function apply(c, pl, c1, c2)
   local ok1, ok2
@@ -182,7 +235,9 @@ end
 
 local function evaluate(c, heights, death_x)
   local s = 0
-  for x = 1, W do heights[x] = height(c, x) end
+  for x = 1, W do
+    heights[x] = height(c, x)
+  end
   if heights[death_x] >= VIS then return -1e7 end
   for x = 1, W do
     local h = heights[x]
@@ -262,10 +317,20 @@ function AI.new(level, seed, personality)
     lv.interval = math.max(2, math.floor(lv.interval / personality.speed + 0.5))
     lv.think = math.max(1, math.floor(lv.think / personality.speed + 0.5))
   end
-  if type(personality.noise) == "number" then lv.noise = lv.noise * math.max(0, personality.noise) end
+  if type(personality.noise) == "number" then
+    lv.noise = lv.noise * math.max(0, personality.noise)
+  end
   return setmetatable({
-    lv = lv, level = level, rng = U.rng(seed or 12345),
-    plan_for = nil, target = nil, co = nil, wait = 0, cool = 0, tries = 0, soft = false,
+    lv = lv,
+    level = level,
+    rng = U.rng(seed or 12345),
+    plan_for = nil,
+    target = nil,
+    co = nil,
+    wait = 0,
+    cool = 0,
+    tries = 0,
+    soft = false,
   }, AI)
 end
 
@@ -277,7 +342,9 @@ end
 
 local function danger_of(c, death_x)
   local hmax, hd = 0, height(c, death_x)
-  for x = 1, W do hmax = math.max(hmax, height(c, x)) end
+  for x = 1, W do
+    hmax = math.max(hmax, height(c, x))
+  end
   return hd >= 9 or hmax >= 11, hd
 end
 
@@ -318,8 +385,15 @@ function AI:plan(player, match)
   local c1, c2 = piece.c1, piece.c2
   local heights = {}
   local danger = danger_of(c0, R.death_x)
-  local opp_danger = player.opponent and select(2, danger_of(player.opponent.board.c, R.death_x)) >= 10
-  local ctx = { R = R, tp = match.target_points, pending = player.pending, danger = danger, opp_danger = opp_danger }
+  local opp_danger = player.opponent
+    and select(2, danger_of(player.opponent.board.c, R.death_x)) >= 10
+  local ctx = {
+    R = R,
+    tp = match.target_points,
+    pending = player.pending,
+    danger = danger,
+    opp_danger = opp_danger,
+  }
   local t0 = sys.time()
 
   local cands = {}

@@ -16,17 +16,15 @@ local MAGIC = 0x2112A442
 
 function Stun.new_txid()
   local t = {}
-  for i = 1, 12 do t[i] = string.char(math.random(0, 255)) end
+  for i = 1, 12 do
+    t[i] = string.char(math.random(0, 255))
+  end
   return table.concat(t)
 end
 
-function Stun.request(txid)
-  return string.pack(">I2I2I4", 0x0001, 0, MAGIC) .. txid
-end
+function Stun.request(txid) return string.pack(">I2I2I4", 0x0001, 0, MAGIC) .. txid end
 
-function Stun.is_response(data)
-  return #data >= 20 and data:byte(1) == 0x01 and data:byte(2) == 0x01
-end
+function Stun.is_response(data) return #data >= 20 and data:byte(1) == 0x01 and data:byte(2) == 0x01 end
 
 -- -> ip, port | nil
 function Stun.parse(data, txid)
@@ -44,7 +42,13 @@ function Stun.parse(data, txid)
         port = port ~ (MAGIC >> 16)
         addr = addr ~ MAGIC
       end
-      local ip = string.format("%d.%d.%d.%d", (addr >> 24) & 255, (addr >> 16) & 255, (addr >> 8) & 255, addr & 255)
+      local ip = string.format(
+        "%d.%d.%d.%d",
+        (addr >> 24) & 255,
+        (addr >> 16) & 255,
+        (addr >> 8) & 255,
+        addr & 255
+      )
       if atype == 0x0020 then return ip, port end
       mapped_ip, mapped_port = ip, port
     end

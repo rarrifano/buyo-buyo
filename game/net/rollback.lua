@@ -30,19 +30,19 @@ function Rollback.new(sim, opts)
   rb.delay = math.max(0, opts.delay or 2)
   rb.max_pred = math.max(1, opts.max_prediction or 8)
   rb.on_checksum = opts.on_checksum
-  rb.frame = 0                 -- next frame to simulate
-  rb.current = 0               -- frame being simulated right now (for event tagging)
-  rb.inputs = { {}, {} }       -- inputs by frame (ours are known when scheduled)
-  rb.predicted = {}            -- remote input used when frame f was simulated
-  rb.states = {}               -- snapshot taken BEFORE simulating frame f
-  rb.checks = {}               -- our checksums of confirmed frames
-  rb.provisional = {}          -- checksums computed with (possibly) predicted inputs
+  rb.frame = 0 -- next frame to simulate
+  rb.current = 0 -- frame being simulated right now (for event tagging)
+  rb.inputs = { {}, {} } -- inputs by frame (ours are known when scheduled)
+  rb.predicted = {} -- remote input used when frame f was simulated
+  rb.states = {} -- snapshot taken BEFORE simulating frame f
+  rb.checks = {} -- our checksums of confirmed frames
+  rb.provisional = {} -- checksums computed with (possibly) predicted inputs
   rb.next_check = 0
-  rb.remote_confirmed = -1     -- every remote input <= this frame is known
-  rb.local_scheduled = -1      -- highest frame holding a local input
-  rb.peer_ack = -1             -- highest local frame the peer confirmed receiving
-  rb.gc_floor = 0              -- inputs below this frame are gone
-  rb.state_floor = 0           -- snapshots below this frame are gone
+  rb.remote_confirmed = -1 -- every remote input <= this frame is known
+  rb.local_scheduled = -1 -- highest frame holding a local input
+  rb.peer_ack = -1 -- highest local frame the peer confirmed receiving
+  rb.gc_floor = 0 -- inputs below this frame are gone
+  rb.state_floor = 0 -- snapshots below this frame are gone
   rb.rollback_to = nil
   rb.resimulating = false
   rb.stats = { rollbacks = 0, resimulated = 0, max_depth = 0, stalls = 0 }
@@ -55,7 +55,9 @@ function Rollback:add_remote_input(f, mask)
   local t = self.inputs[self.them]
   if t[f] ~= nil then return end
   t[f] = mask
-  while t[self.remote_confirmed + 1] ~= nil do self.remote_confirmed = self.remote_confirmed + 1 end
+  while t[self.remote_confirmed + 1] ~= nil do
+    self.remote_confirmed = self.remote_confirmed + 1
+  end
   if f < self.frame and self.predicted[f] ~= mask then
     if not self.rollback_to or f < self.rollback_to then self.rollback_to = f end
   end
@@ -67,7 +69,9 @@ function Rollback:unacked_local(limit)
   local to = math.min(self.local_scheduled, from + (limit or 64) - 1)
   local list = {}
   local t = self.inputs[self.me]
-  for f = from, to do list[#list + 1] = t[f] end
+  for f = from, to do
+    list[#list + 1] = t[f]
+  end
   return from, list
 end
 
@@ -89,7 +93,11 @@ function Rollback:simulate(f)
   self.predicted[f] = r
   local l = self.inputs[self.me][f]
   self.current = f
-  if self.me == 1 then self.sim:step(l, r) else self.sim:step(r, l) end
+  if self.me == 1 then
+    self.sim:step(l, r)
+  else
+    self.sim:step(r, l)
+  end
   -- provisional: becomes final once every input up to f is confirmed (a
   -- rollback that touches f recomputes it before that happens)
   if f % Rollback.CHECK_INTERVAL == 0 then self.provisional[f] = self.sim:checksum() end
@@ -122,7 +130,9 @@ function Rollback:do_rollback()
   if not st then error("rollback: no snapshot for frame " .. f .. " (window too small?)") end
   self.sim:load(st)
   self.resimulating = true
-  for g = f, self.frame - 1 do self:simulate(g) end
+  for g = f, self.frame - 1 do
+    self:simulate(g)
+  end
   self.resimulating = false
   local depth = self.frame - f
   self.stats.rollbacks = self.stats.rollbacks + 1
@@ -141,7 +151,8 @@ function Rollback:update(local_mask)
   while self.local_scheduled < self.frame + self.delay do
     self.local_scheduled = self.local_scheduled + 1
     -- the very first `delay` frames nobody can have input yet
-    self.inputs[self.me][self.local_scheduled] = self.local_scheduled < self.delay and 0 or local_mask
+    self.inputs[self.me][self.local_scheduled] = self.local_scheduled < self.delay and 0
+      or local_mask
   end
   if self.rollback_to then self:do_rollback() end
   if not self:can_advance() then

@@ -33,7 +33,7 @@ function Match.new(opts)
   m.seed = math.tointeger(opts.seed) or 1
   m.seeds = U.rng(m.seed)
   m.rng = U.rng(m.seed ~ 0x5bd1e995) -- for modes: m.rng:int(a, b)
-  m.data = {}                        -- free-form mode state (snapshotted)
+  m.data = {} -- free-form mode state (snapshotted)
   m.disabled_hooks = {}
   m.players = { Player.new(1, m), Player.new(2, m) }
   m.players[1].opponent = m.players[2]
@@ -45,7 +45,7 @@ function Match.new(opts)
   m.wins = { 0, 0 }
   m.round = 0
   m.tick = 0
-  m:hook("init")
+  m:hook "init"
   m:new_round()
   return m
 end
@@ -63,7 +63,12 @@ function Match:hook(name, ...)
   local ok, a, b = pcall(f, self, ...)
   if not ok then
     self.disabled_hooks[name] = true
-    local msg = string.format("mode '%s' hook '%s' failed and was disabled: %s", mode.id or "?", name, tostring(a))
+    local msg = string.format(
+      "mode '%s' hook '%s' failed and was disabled: %s",
+      mode.id or "?",
+      name,
+      tostring(a)
+    )
     print(msg)
     if self.opts.on_hook_error then self.opts.on_hook_error(name, msg) end
     return nil
@@ -75,14 +80,16 @@ function Match:new_round()
   self.round = self.round + 1
   local seed = self.seeds:next()
   self.seq = Sequence.new(seed, self.R.colors)
-  for i, p in ipairs(self.players) do p:reset(seed + i * 7919) end
+  for i, p in ipairs(self.players) do
+    p:reset(seed + i * 7919)
+  end
   self.frames = 0
   self.target_points = self.R.target_points
   self.gravity = self.R.gravity
   self.state = "ready"
   self.timer = 0
   self.round_winner = nil
-  self:hook("round_start")
+  self:hook "round_start"
   self:emit(nil, "round_start", { round = self.round })
 end
 
@@ -128,7 +135,9 @@ function Match:step(m1, m2)
     self.timer = self.timer + 1
     if self.timer >= self.R.ready_time then
       self.state = "play"
-      for _, p in ipairs(self.players) do p:start() end
+      for _, p in ipairs(self.players) do
+        p:start()
+      end
       self:emit(nil, "go")
     end
   elseif st == "play" then
@@ -137,8 +146,8 @@ function Match:step(m1, m2)
     local p1, p2 = self.players[1], self.players[2]
     p1:update(m1)
     p2:update(m2)
-    self:hook("frame")
-    local w = self:hook("winner")
+    self:hook "frame"
+    local w = self:hook "winner"
     if w == 0 or w == 1 or w == 2 then
       self:end_round(w)
     elseif p1.dead or p2.dead then
@@ -166,20 +175,31 @@ local copy = Rules.copy
 
 function Match:save()
   return {
-    tick = self.tick, frames = self.frames, target_points = self.target_points, gravity = self.gravity,
-    state = self.state, timer = self.timer, round_winner = self.round_winner, round = self.round,
+    tick = self.tick,
+    frames = self.frames,
+    target_points = self.target_points,
+    gravity = self.gravity,
+    state = self.state,
+    timer = self.timer,
+    round_winner = self.round_winner,
+    round = self.round,
     done_tick = self.done_tick,
-    w1 = self.wins[1], w2 = self.wins[2],
-    seeds = self.seeds.s, rng = self.rng.s,
-    seq = self.seq, seqst = self.seq:save(),
-    p1 = self.players[1]:save(), p2 = self.players[2]:save(),
+    w1 = self.wins[1],
+    w2 = self.wins[2],
+    seeds = self.seeds.s,
+    rng = self.rng.s,
+    seq = self.seq,
+    seqst = self.seq:save(),
+    p1 = self.players[1]:save(),
+    p2 = self.players[2]:save(),
     data = copy(self.data),
     disabled = copy(self.disabled_hooks),
   }
 end
 
 function Match:load(s)
-  self.tick, self.frames, self.target_points, self.gravity = s.tick, s.frames, s.target_points, s.gravity
+  self.tick, self.frames, self.target_points, self.gravity =
+    s.tick, s.frames, s.target_points, s.gravity
   self.state, self.timer, self.round_winner, self.round = s.state, s.timer, s.round_winner, s.round
   self.done_tick = s.done_tick
   self.wins[1], self.wins[2] = s.w1, s.w2
@@ -194,9 +214,11 @@ end
 
 local STATE_ID = { ready = 1, play = 2, over = 3, done = 4 }
 
-function Match:checksum()
+-- exclude_tick: compare end results of two runs that may have idled for a
+-- different number of frames after the match was over
+function Match:checksum(exclude_tick)
   local h = 2166136261
-  h = mix(h, self.tick)
+  if not exclude_tick then h = mix(h, self.tick) end
   h = mix(h, self.frames)
   h = mix(h, STATE_ID[self.state] or 0)
   h = mix(h, self.timer)

@@ -19,25 +19,61 @@ local Rules = require "puyo.rules"
 local Content = {}
 
 Content.KINDS = { "chars", "stages", "skins", "modes", "music" }
-Content.FILE = { chars = "char.lua", stages = "stage.lua", skins = "skin.lua", modes = "mode.lua", music = "song.lua" }
+Content.FILE = {
+  chars = "char.lua",
+  stages = "stage.lua",
+  skins = "skin.lua",
+  modes = "mode.lua",
+  music = "song.lua",
+}
 Content.API_VERSION = 1
 
-Content.items = {}   -- kind -> id -> def
-Content.lists = {}   -- kind -> sorted array of defs
-Content.errors = {}  -- { kind=, id=, msg= }
+Content.items = {} -- kind -> id -> def
+Content.lists = {} -- kind -> sorted array of defs
+Content.errors = {} -- { kind=, id=, msg= }
 Content.roots = {}
 
 local SAFE_BASE = {
-  "assert", "error", "ipairs", "next", "pairs", "pcall", "select", "tonumber", "tostring",
-  "type", "xpcall", "rawequal", "rawlen", "setmetatable", "getmetatable",
+  "assert",
+  "error",
+  "ipairs",
+  "next",
+  "pairs",
+  "pcall",
+  "select",
+  "tonumber",
+  "tostring",
+  "type",
+  "xpcall",
+  "rawequal",
+  "rawlen",
+  "setmetatable",
+  "getmetatable",
 }
 local SAFE_GFX = {
-  "color", "rect", "rect_line", "line", "circle", "draw", "drawq", "stretch",
-  "text", "text_width", "blend", "size", "image", "shape",
+  "color",
+  "rect",
+  "rect_line",
+  "line",
+  "circle",
+  "draw",
+  "drawq",
+  "stretch",
+  "text",
+  "text_width",
+  "blend",
+  "size",
+  "image",
+  "shape",
 }
 
 Content.PALETTE = {
-  { 255, 76, 92 }, { 70, 214, 100 }, { 70, 130, 255 }, { 255, 210, 50 }, { 186, 96, 255 }, { 205, 212, 232 },
+  { 255, 76, 92 },
+  { 70, 214, 100 },
+  { 70, 130, 255 },
+  { 255, 210, 50 },
+  { 186, 96, 255 },
+  { 205, 212, 232 },
 }
 
 ------------------------------------------------------------------------
@@ -47,20 +83,29 @@ Content.PALETTE = {
 -- FNV-1a 32 of a string, as 8 hex digits
 function Content.hash_string(s)
   local h = 2166136261
-  for i = 1, #s do h = ((h ~ s:byte(i)) * 16777619) & 0xffffffff end
+  for i = 1, #s do
+    h = ((h ~ s:byte(i)) * 16777619) & 0xffffffff
+  end
   return string.format("%08x", h)
 end
 
 local function shallow_copy(t)
   local r = {}
-  for k, v in pairs(t) do r[k] = v end
+  for k, v in pairs(t) do
+    r[k] = v
+  end
   return r
 end
 
 -- resolve a file name relative to an item folder; refuses to escape it
 function Content.path(def, name)
   if type(name) ~= "string" or name == "" then return nil, "file name expected" end
-  if name:find("..", 1, true) or name:match("^[/\\]") or name:match("^%a:") or not name:match("^[%w_%-%./ ]+$") then
+  if
+    name:find("..", 1, true)
+    or name:match "^[/\\]"
+    or name:match "^%a:"
+    or not name:match "^[%w_%-%./ ]+$"
+  then
     return nil, "invalid file name '" .. name .. "' (stay inside the item folder)"
   end
   return def.folder .. "/" .. name
@@ -84,7 +129,11 @@ function Content.call(def, name, ...)
   local ok, a, b, c = pcall(f, ...)
   if not ok then
     def._disabled[name] = true
-    Content.report(def.kind, def.id, string.format("%s() failed and was disabled: %s", name, tostring(a)))
+    Content.report(
+      def.kind,
+      def.id,
+      string.format("%s() failed and was disabled: %s", name, tostring(a))
+    )
     return nil
   end
   return a, b, c
@@ -110,7 +159,9 @@ local safe_gfx
 function Content.sandbox_gfx()
   if not safe_gfx then
     safe_gfx = {}
-    for _, k in ipairs(SAFE_GFX) do safe_gfx[k] = gfx[k] end
+    for _, k in ipairs(SAFE_GFX) do
+      safe_gfx[k] = gfx[k]
+    end
   end
   return readonly(safe_gfx)
 end
@@ -119,7 +170,9 @@ local asset_cache = setmetatable({}, { __mode = "v" })
 
 local function make_env(kind, def)
   local env = {}
-  for _, k in ipairs(SAFE_BASE) do env[k] = _G[k] end
+  for _, k in ipairs(SAFE_BASE) do
+    env[k] = _G[k]
+  end
   env.math = shallow_copy(math)
   env.string = shallow_copy(string)
   env.table = shallow_copy(table)
@@ -131,7 +184,9 @@ local function make_env(kind, def)
   end
   env.print = function(...)
     local parts = {}
-    for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
+    for i = 1, select("#", ...) do
+      parts[#parts + 1] = tostring((select(i, ...)))
+    end
     print(string.format("[%s/%s] %s", kind, def.id, table.concat(parts, " ")))
   end
   env.ENGINE = { version = sys.version, api = Content.API_VERSION, platform = sys.platform }
@@ -171,7 +226,9 @@ local function make_env(kind, def)
       return s
     end
     env.play_sound = function(sample, vol, pan, pitch) audio.play_sample(sample, vol, pan, pitch) end
-    env.synth = function(t) if type(t) == "table" then audio.play(t) end end
+    env.synth = function(t)
+      if type(t) == "table" then audio.play(t) end
+    end
   end
   return env
 end
@@ -181,7 +238,12 @@ end
 ------------------------------------------------------------------------
 
 local function color3(c, default)
-  if type(c) == "table" and type(c[1]) == "number" and type(c[2]) == "number" and type(c[3]) == "number" then
+  if
+    type(c) == "table"
+    and type(c[1]) == "number"
+    and type(c[2]) == "number"
+    and type(c[3]) == "number"
+  then
     return { c[1], c[2], c[3] }
   end
   return default
@@ -191,9 +253,13 @@ local VALIDATE = {}
 
 function VALIDATE.chars(d)
   d.color = color3(d.color, { 255, 255, 255 })
-  if d.portrait ~= nil and type(d.portrait) ~= "string" then return "portrait must be a file name" end
+  if d.portrait ~= nil and type(d.portrait) ~= "string" then
+    return "portrait must be a file name"
+  end
   if d.paint ~= nil and type(d.paint) ~= "function" then return "paint must be a function" end
-  if d.moods ~= nil and type(d.moods) ~= "table" then return "moods must be a table of file names" end
+  if d.moods ~= nil and type(d.moods) ~= "table" then
+    return "moods must be a table of file names"
+  end
   if d.voice ~= nil and type(d.voice) ~= "table" then return "voice must be a table" end
   if d.cpu ~= nil and type(d.cpu) ~= "table" then return "cpu must be a table" end
 end
@@ -207,7 +273,7 @@ end
 
 function VALIDATE.skins(d)
   if type(d.sheet) ~= "string" and type(d.paint) ~= "function" then
-    return "a skin needs either sheet = \"file.png\" or a paint(img, cell, api) function"
+    return 'a skin needs either sheet = "file.png" or a paint(img, cell, api) function'
   end
   d.cell = math.tointeger(d.cell) or 64
   if d.cell < 8 or d.cell > 256 then return "cell must be between 8 and 256" end
@@ -216,8 +282,20 @@ end
 function VALIDATE.modes(d)
   if d.rules ~= nil and type(d.rules) ~= "table" then return "rules must be a table" end
   for k, v in pairs(d) do
-    if type(v) == "function" and not ({ init = 1, round_start = 1, frame = 1, link = 1, chain_end = 1,
-      pair = 1, garbage = 1, winner = 1, hud = 1 })[k] then
+    if
+      type(v) == "function"
+      and not ({
+        init = 1,
+        round_start = 1,
+        frame = 1,
+        link = 1,
+        chain_end = 1,
+        pair = 1,
+        garbage = 1,
+        winner = 1,
+        hud = 1,
+      })[k]
+    then
       return "unknown hook '" .. k .. "' (see docs/MODES.md)"
     end
   end
@@ -225,7 +303,7 @@ end
 
 function VALIDATE.music(d)
   if type(d.file) ~= "string" and type(d.channels) ~= "table" then
-    return "a song needs file = \"song.ogg\" or chiptune channels = { ... }"
+    return 'a song needs file = "song.ogg" or chiptune channels = { ... }'
   end
 end
 
@@ -243,7 +321,9 @@ local function load_item(kind, id, folder, file, root)
   if not chunk then return Content.report(kind, id, cerr) end
   local ok, result = pcall(chunk)
   if not ok then return Content.report(kind, id, tostring(result)) end
-  if type(result) ~= "table" then return Content.report(kind, id, "the file must return a table") end
+  if type(result) ~= "table" then
+    return Content.report(kind, id, "the file must return a table")
+  end
   for k, v in pairs(result) do
     if def[k] == nil then def[k] = v end
   end
@@ -261,7 +341,9 @@ function Content.default_roots(extra)
   local roots = { { path = sys.data_dir() .. "/../content", label = "built-in" } }
   local pref = sys.pref_dir()
   if pref and pref ~= "" then roots[#roots + 1] = { path = pref .. "mods", label = "user" } end
-  for _, p in ipairs(extra or {}) do roots[#roots + 1] = { path = p, label = "extra" } end
+  for _, p in ipairs(extra or {}) do
+    roots[#roots + 1] = { path = p, label = "extra" }
+  end
   return roots
 end
 
@@ -272,18 +354,23 @@ function Content.ensure_user_dir()
   local dir = pref .. "mods"
   if sys.exists(dir) ~= "dir" then
     sys.mkdir(dir)
-    for _, k in ipairs(Content.KINDS) do sys.mkdir(dir .. "/" .. k) end
-    sys.write_file(dir .. "/README.txt", table.concat({
-      "Buyo Buyo user content folder",
-      "",
-      "Drop content packs here, one folder per item:",
-      "  chars/<id>/char.lua    stages/<id>/stage.lua    skins/<id>/skin.lua",
-      "  modes/<id>/mode.lua    music/<id>/song.lua",
-      "",
-      "Items here override built-in items with the same id.",
-      "Press F5 in game to reload. The full guide is in docs/ (docs/README.md).",
-      "",
-    }, "\n"))
+    for _, k in ipairs(Content.KINDS) do
+      sys.mkdir(dir .. "/" .. k)
+    end
+    sys.write_file(
+      dir .. "/README.txt",
+      table.concat({
+        "Buyo Buyo user content folder",
+        "",
+        "Drop content packs here, one folder per item:",
+        "  chars/<id>/char.lua    stages/<id>/stage.lua    skins/<id>/skin.lua",
+        "  modes/<id>/mode.lua    music/<id>/song.lua",
+        "",
+        "Items here override built-in items with the same id.",
+        "Press F5 in game to reload. The full guide is in docs/ (docs/README.md).",
+        "",
+      }, "\n")
+    )
   end
   return dir
 end
@@ -308,11 +395,11 @@ function Content.load_all(extra)
               id, folder = e.name, dir .. "/" .. e.name
               file = folder .. "/" .. Content.FILE[kind]
               if sys.exists(file) ~= "file" then file = nil end
-            elseif kind == "music" and e.name:match("%.lua$") then
+            elseif kind == "music" and e.name:match "%.lua$" then
               id, folder, file = e.name:gsub("%.lua$", ""), dir, dir .. "/" .. e.name
             end
             if file then
-              if id:match("^[%w_%-]+$") then
+              if id:match "^[%w_%-]+$" then
                 load_item(kind, id, folder, file, root)
               else
                 Content.report(kind, id, "invalid folder name (use letters, digits, _ and -)")
@@ -326,7 +413,7 @@ function Content.load_all(extra)
   for _, k in ipairs(Content.KINDS) do
     local list = {}
     for _, def in pairs(Content.items[k]) do
-      if not (def.hidden == true) then list[#list + 1] = def end
+      if def.hidden ~= true then list[#list + 1] = def end
     end
     table.sort(list, function(a, b)
       local oa, ob = tonumber(a.order) or 100, tonumber(b.order) or 100
@@ -337,28 +424,40 @@ function Content.load_all(extra)
   end
   -- never leave the platform without a character (e.g. content folder missing)
   if #Content.lists.chars == 0 then
-    local stub = { id = "nobody", kind = "chars", name = "Nobody", author = "engine", color = { 230, 230, 240 },
-                   folder = ".", source = "", root = "engine", hash = "0" }
+    local stub = {
+      id = "nobody",
+      kind = "chars",
+      name = "Nobody",
+      author = "engine",
+      color = { 230, 230, 240 },
+      folder = ".",
+      source = "",
+      root = "engine",
+      hash = "0",
+    }
     Content.items.chars.nobody = stub
     Content.lists.chars = { stub }
-    Content.report("chars", "nobody", "no characters found - install some into " .. (Content.roots[2] and Content.roots[2].path or "mods"))
+    Content.report(
+      "chars",
+      "nobody",
+      "no characters found - install some into "
+        .. (Content.roots[2] and Content.roots[2].path or "mods")
+    )
   end
 end
 
-function Content.get(kind, id)
-  return id and Content.items[kind] and Content.items[kind][id] or nil
-end
+function Content.get(kind, id) return id and Content.items[kind] and Content.items[kind][id] or nil end
 
 function Content.list(kind) return Content.lists[kind] or {} end
 
 -- first item of a kind, preferring `id`
-function Content.pick(kind, id)
-  return Content.get(kind, id) or Content.list(kind)[1]
-end
+function Content.pick(kind, id) return Content.get(kind, id) or Content.list(kind)[1] end
 
 function Content.count()
   local n = {}
-  for _, k in ipairs(Content.KINDS) do n[k] = #Content.list(k) end
+  for _, k in ipairs(Content.KINDS) do
+    n[k] = #Content.list(k)
+  end
   return n
 end
 

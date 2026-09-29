@@ -19,9 +19,17 @@ NetGame.__index = NetGame
 function NetGame.new(session, match, local_player, opts)
   opts = opts or {}
   local ng = setmetatable({
-    s = session, m = match, me = local_player,
-    remote_checks = {}, local_checks = {}, desync = nil,
-    remote_frame = 0, adv = 0, skip_cool = 0, skips = 0, stalled = 0,
+    s = session,
+    m = match,
+    me = local_player,
+    remote_checks = {},
+    local_checks = {},
+    desync = nil,
+    remote_frame = 0,
+    adv = 0,
+    skip_cool = 0,
+    skips = 0,
+    stalled = 0,
     seen = {},
   }, NetGame)
   ng.rb = Rollback.new(match, {
@@ -35,7 +43,9 @@ function NetGame.new(session, match, local_player, opts)
     end,
   })
   session.on_input = function(start, masks, ack, their_frame)
-    for j = 1, #masks do ng.rb:add_remote_input(start + j - 1, masks:byte(j)) end
+    for j = 1, #masks do
+      ng.rb:add_remote_input(start + j - 1, masks:byte(j))
+    end
     ng.rb:set_peer_ack(ack)
     if their_frame > ng.remote_frame then ng.remote_frame = their_frame end
   end
@@ -52,7 +62,9 @@ function NetGame.new(session, match, local_player, opts)
       bucket = {}
       ng.seen[f] = bucket
     end
-    local key = (p and p.id or 0) .. name .. tostring(data and (data.i or data.chain or data.n) or "")
+    local key = (p and p.id or 0)
+      .. name
+      .. tostring(data and (data.i or data.chain or data.n) or "")
     if bucket[key] then return end
     bucket[key] = true
     if deliver then deliver(p, name, data, m) end

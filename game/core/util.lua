@@ -2,7 +2,11 @@
 local U = {}
 
 function U.clamp(v, lo, hi)
-  if v < lo then return lo elseif v > hi then return hi end
+  if v < lo then
+    return lo
+  elseif v > hi then
+    return hi
+  end
   return v
 end
 
@@ -13,7 +17,10 @@ function U.approach(v, target, step)
   return math.max(v - step, target)
 end
 
-function U.ease_out_cubic(t) t = 1 - t; return 1 - t * t * t end
+function U.ease_out_cubic(t)
+  t = 1 - t
+  return 1 - t * t * t
+end
 
 function U.ease_out_back(t)
   local c1 = 1.70158
@@ -21,13 +28,13 @@ function U.ease_out_back(t)
   return 1 + c3 * (t - 1) ^ 3 + c1 * (t - 1) ^ 2
 end
 
-function U.pad_number(n, width)
-  return string.format("%0" .. width .. "d", math.floor(n))
-end
+function U.pad_number(n, width) return string.format("%0" .. width .. "d", math.floor(n)) end
 
 function U.copy(t)
   local r = {}
-  for k, v in pairs(t) do r[k] = v end
+  for k, v in pairs(t) do
+    r[k] = v
+  end
   return r
 end
 
@@ -40,7 +47,9 @@ function U.rng(seed)
   local s = math.floor(seed or 1) & 0xffffffff
   if s == 0 then s = 0x6d2b79f5 end
   local r = setmetatable({ s = s }, RNG)
-  for _ = 1, 8 do r:next() end
+  for _ = 1, 8 do
+    r:next()
+  end
   return r
 end
 

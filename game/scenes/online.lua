@@ -21,8 +21,15 @@ local ROWS = { "code", "connect", "copy", "delay", "back" }
 -- opts: connect = "code or ip:port", bot = level, sim = {...}, no_stun, quit_at_end, port
 function Online.new(opts)
   opts = opts or {}
-  local o = setmetatable({ t = 0, sel = 1, text = "", opts = opts, status = "WAITING FOR A FRIEND..." }, Online)
-  local s, err = Session.new { port = opts.port or Settings.data.net_port, name = Settings.data.name, sim = opts.sim }
+  local o = setmetatable(
+    { t = 0, sel = 1, text = "", opts = opts, status = "WAITING FOR A FRIEND..." },
+    Online
+  )
+  local s, err = Session.new {
+    port = opts.port or Settings.data.net_port,
+    name = Settings.data.name,
+    sim = opts.sim,
+  }
   if not s then
     o.error = "cannot open a UDP port: " .. tostring(err)
   else
@@ -37,20 +44,16 @@ function Online.new(opts)
   return o
 end
 
-function Online:enter()
-  sys.text_input(true)
-end
+function Online:enter() sys.text_input(true) end
 
-function Online:leave()
-  sys.text_input(false)
-end
+function Online:leave() sys.text_input(false) end
 
 function Online:connect()
   if not self.session then return end
   local a, b, c = Code.parse(self.text, Session.DEFAULT_PORT)
   if not a then
     self.status = "THAT DOES NOT LOOK LIKE A CODE OR IP:PORT"
-    Sound.play("menu_back")
+    Sound.play "menu_back"
     return
   end
   if c == "resolve" then
@@ -61,7 +64,7 @@ function Online:connect()
     self.status = "CONNECTING TO " .. self.text:upper() .. "..."
   end
   self.connect_t = self.t
-  Sound.play("menu_ok")
+  Sound.play "menu_ok"
 end
 
 function Online:text(str)
@@ -75,7 +78,9 @@ function Online:key(name, down)
   if self.sel == 1 and name == "Backspace" then
     self.text = self.text:sub(1, -2)
     self.ate_back = true
-  elseif name == "V" and (input.key("Left Ctrl") or input.key("Right Ctrl") or input.key("Left GUI")) then
+  elseif
+    name == "V" and (input.key "Left Ctrl" or input.key "Right Ctrl" or input.key "Left GUI")
+  then
     local clip = sys.clipboard()
     if clip then self.text = clip:gsub("[^%w%.%-:]", ""):sub(1, 40) end
     self.sel = 1
@@ -88,17 +93,20 @@ function Online:update()
   local m = Controls.menu
   local s = self.session
   if self.error or not s then
-    if m.pressed.confirm or m.pressed.back then
-      Scene.go(require("scenes.title").new(3))
-    end
+    if m.pressed.confirm or m.pressed.back then Scene.go(require("scenes.title").new(3)) end
     return
   end
   s:update()
   for _, ev in ipairs(s:poll()) do
     if ev.name == "connected" then
-      Sound.play("menu_ok")
+      Sound.play "menu_ok"
       local Select = require "scenes.select"
-      Scene.go(Select.new { mode = "online", session = s, bot = self.opts.bot, quit_at_end = self.opts.quit_at_end })
+      Scene.go(Select.new {
+        mode = "online",
+        session = s,
+        bot = self.opts.bot,
+        quit_at_end = self.opts.quit_at_end,
+      })
       self.handed_over = true
       return
     elseif ev.name == "error" then
@@ -123,33 +131,46 @@ function Online:update()
   end
 
   -- navigation (letters typed into the code field are handled by text())
-  if m:rep("up") and not (self.sel == 1 and input.key("W")) then self.sel = (self.sel - 2) % #ROWS + 1; Sound.play("menu_move") end
-  if m:rep("down") and not (self.sel == 1 and input.key("S")) then self.sel = self.sel % #ROWS + 1; Sound.play("menu_move") end
+  if m:rep "up" and not (self.sel == 1 and input.key "W") then
+    self.sel = (self.sel - 2) % #ROWS + 1
+    Sound.play "menu_move"
+  end
+  if m:rep "down" and not (self.sel == 1 and input.key "S") then
+    self.sel = self.sel % #ROWS + 1
+    Sound.play "menu_move"
+  end
   local row = ROWS[self.sel]
-  local enter = input.key("Return") and m.pressed.confirm or (row ~= "code" and m.pressed.confirm)
+  local enter = input.key "Return" and m.pressed.confirm or (row ~= "code" and m.pressed.confirm)
   if row == "delay" then
-    if m:rep("left") and not input.key("A") then Settings.data.net_delay = math.max(0, Settings.data.net_delay - 1); Sound.play("menu_move") end
-    if m:rep("right") and not input.key("D") then Settings.data.net_delay = math.min(8, Settings.data.net_delay + 1); Sound.play("menu_move") end
+    if m:rep "left" and not input.key "A" then
+      Settings.data.net_delay = math.max(0, Settings.data.net_delay - 1)
+      Sound.play "menu_move"
+    end
+    if m:rep "right" and not input.key "D" then
+      Settings.data.net_delay = math.min(8, Settings.data.net_delay + 1)
+      Sound.play "menu_move"
+    end
   end
   if enter then
-    if row == "code" or row == "connect" then self:connect()
+    if row == "code" or row == "connect" then
+      self:connect()
     elseif row == "copy" then
       local codes = s:codes()
       sys.clipboard(codes.public or codes.lan)
       self.status = "YOUR CODE WAS COPIED TO THE CLIPBOARD"
-      Sound.play("menu_ok")
+      Sound.play "menu_ok"
     elseif row == "back" then
       s:destroy()
       Settings.save()
-      Sound.play("menu_back")
+      Sound.play "menu_back"
       Scene.go(require("scenes.title").new(3))
     end
   end
-  local escape = input.key("Escape") and m.pressed.back
+  local escape = input.key "Escape" and m.pressed.back
   if escape or (m.pressed.back and row ~= "code" and not self.ate_back) then
     s:destroy()
     Settings.save()
-    Sound.play("menu_back")
+    Sound.play "menu_back"
     Scene.go(require("scenes.title").new(3))
   end
   self.ate_back = false
@@ -175,10 +196,31 @@ function Online:draw()
   else
     UI.text("FINDING YOUR INTERNET ADDRESS...", 640, 184, 2, "center", UI.DIM)
   end
-  UI.text("LAN: " .. (codes.lan or "?") .. "   (" .. s.lan_ip .. ":" .. s.port .. ")", 640, 232, 2, "center", UI.GRAY)
+  UI.text(
+    "LAN: " .. (codes.lan or "?") .. "   (" .. s.lan_ip .. ":" .. s.port .. ")",
+    640,
+    232,
+    2,
+    "center",
+    UI.GRAY
+  )
 
-  UI.text("Send your code to your friend. One of you types the other's code.", 640, 272, 1.5, "center", UI.DIM)
-  UI.text("Doesn't connect? BOTH type each other's code (hole punching).", 640, 292, 1.5, "center", UI.DIM)
+  UI.text(
+    "Send your code to your friend. One of you types the other's code.",
+    640,
+    272,
+    1.5,
+    "center",
+    UI.DIM
+  )
+  UI.text(
+    "Doesn't connect? BOTH type each other's code (hole punching).",
+    640,
+    292,
+    1.5,
+    "center",
+    UI.DIM
+  )
 
   local y0 = 330
   for k, row in ipairs(ROWS) do
@@ -206,7 +248,14 @@ function Online:draw()
     end
   end
   UI.text(self.status, 640, 612, 2, "center", UI.YELLOW)
-  UI.text("Ctrl+V PASTES A CODE.  LAN, VPN (TAILSCALE/ZEROTIER) OR A FORWARDED PORT ALWAYS WORK.", 640, 686, 1.5, "center", UI.DIM)
+  UI.text(
+    "Ctrl+V PASTES A CODE.  LAN, VPN (TAILSCALE/ZEROTIER) OR A FORWARDED PORT ALWAYS WORK.",
+    640,
+    686,
+    1.5,
+    "center",
+    UI.DIM
+  )
 end
 
 return Online

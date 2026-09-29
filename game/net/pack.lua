@@ -10,15 +10,20 @@ local MAX_DEPTH, MAX_ITEMS, MAX_STR = 8, 512, 4096
 
 local function enc(v, out, depth)
   local t = type(v)
-  if t == "nil" then out[#out + 1] = "n"
-  elseif t == "boolean" then out[#out + 1] = v and "t" or "f"
+  if t == "nil" then
+    out[#out + 1] = "n"
+  elseif t == "boolean" then
+    out[#out + 1] = v and "t" or "f"
   elseif t == "number" then
-    if math.type(v) == "integer" then out[#out + 1] = "i" .. string.pack("<i8", v)
-    else out[#out + 1] = "d" .. string.pack("<d", v) end
+    if math.type(v) == "integer" then
+      out[#out + 1] = "i" .. string.pack("<i8", v)
+    else
+      out[#out + 1] = "d" .. string.pack("<d", v)
+    end
   elseif t == "string" then
     out[#out + 1] = "s" .. string.pack("<s2", v:sub(1, MAX_STR))
   elseif t == "table" then
-    if depth >= MAX_DEPTH then error("pack: table too deep") end
+    if depth >= MAX_DEPTH then error "pack: table too deep" end
     local keys = {}
     for k in pairs(v) do
       local kt = type(k)
@@ -47,20 +52,25 @@ end
 
 local function dec(s, pos, depth, budget)
   budget.n = budget.n + 1
-  if budget.n > MAX_ITEMS then error("pack: too many items") end
+  if budget.n > MAX_ITEMS then error "pack: too many items" end
   local tag = s:sub(pos, pos)
   pos = pos + 1
-  if tag == "n" then return nil, pos
-  elseif tag == "t" then return true, pos
-  elseif tag == "f" then return false, pos
-  elseif tag == "i" then return string.unpack("<i8", s, pos)
+  if tag == "n" then
+    return nil, pos
+  elseif tag == "t" then
+    return true, pos
+  elseif tag == "f" then
+    return false, pos
+  elseif tag == "i" then
+    return string.unpack("<i8", s, pos)
   elseif tag == "d" then
     local v, p = string.unpack("<d", s, pos)
     if v ~= v then v = 0 end
     return v, p
-  elseif tag == "s" then return string.unpack("<s2", s, pos)
+  elseif tag == "s" then
+    return string.unpack("<s2", s, pos)
   elseif tag == "T" then
-    if depth >= MAX_DEPTH then error("pack: too deep") end
+    if depth >= MAX_DEPTH then error "pack: too deep" end
     local n
     n, pos = string.unpack("<I2", s, pos)
     local t = {}
@@ -72,7 +82,7 @@ local function dec(s, pos, depth, budget)
     end
     return t, pos
   end
-  error("pack: bad tag")
+  error "pack: bad tag"
 end
 
 -- returns value or nil, err

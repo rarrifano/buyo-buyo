@@ -22,7 +22,9 @@ local function load_tex(def, file)
   if textures[key] ~= nil then return textures[key] or nil end
   local p, err = Content.path(def, file)
   local tex
-  if p then tex, err = gfx.load(p) end
+  if p then
+    tex, err = gfx.load(p)
+  end
   if not tex then Content.report("chars", def.id, tostring(err)) end
   textures[key] = tex or false
   return tex
@@ -59,7 +61,9 @@ function Char.draw(def, x, y, w, h, mood, t, flip, alpha)
   if tex then
     local tw, th = tex:size()
     local k = math.min(w / tw, h / th)
-    local bob = (mood == "happy" or mood == "win") and math.abs(math.sin((t or 0) * 0.25)) * h * 0.04 or 0
+    local bob = (mood == "happy" or mood == "win")
+        and math.abs(math.sin((t or 0) * 0.25)) * h * 0.04
+      or 0
     gfx.draw(tex, x + w / 2, y + h - bob, 0, flip and -k or k, k, tw / 2, th)
   else
     local c = def and def.color or { 200, 200, 200 }
@@ -73,7 +77,9 @@ local function sound(def, file)
   if sounds[key] ~= nil then return sounds[key] or nil end
   local p, err = Content.path(def, file)
   local s
-  if p then s, err = audio.load(p) end
+  if p then
+    s, err = audio.load(p)
+  end
   if not s then Content.report("chars", def.id, tostring(err)) end
   sounds[key] = s or false
   return s
@@ -89,7 +95,11 @@ function Char.voice(def, event, n, pan)
     local ok, err = pcall(v, n, pan)
     if not ok then
       def._voice_off[event] = true
-      Content.report("chars", def.id, "voice." .. event .. " failed and was disabled: " .. tostring(err))
+      Content.report(
+        "chars",
+        def.id,
+        "voice." .. event .. " failed and was disabled: " .. tostring(err)
+      )
       return false
     end
     return true

@@ -31,7 +31,8 @@ local B_LEFT, B_RIGHT, B_UP, B_DOWN, B_ROTL, B_ROTR = 1, 2, 4, 8, 16, 32
 local Player = {}
 Player.__index = Player
 Player.RDX, Player.RDY = RDX, RDY
-Player.BUTTONS = { left = B_LEFT, right = B_RIGHT, up = B_UP, down = B_DOWN, rot_l = B_ROTL, rot_r = B_ROTR }
+Player.BUTTONS =
+  { left = B_LEFT, right = B_RIGHT, up = B_UP, down = B_DOWN, rot_l = B_ROTL, rot_r = B_ROTR }
 
 -- coerce a (possibly missing / float) value coming from a mode hook to an integer
 local function toint(v, default)
@@ -41,7 +42,9 @@ end
 
 local function zeros(n)
   local t = {}
-  for i = 1, n do t[i] = 0 end
+  for i = 1, n do
+    t[i] = 0
+  end
   return t
 end
 
@@ -73,8 +76,8 @@ function Player:reset(seed)
   self.chain = 0
   self.max_chain = 0
   self.chaining = false
-  self.pending = 0      -- nuisance waiting to fall on us
-  self.leftover = 0     -- score not yet converted into nuisance
+  self.pending = 0 -- nuisance waiting to fall on us
+  self.leftover = 0 -- score not yet converted into nuisance
   self.all_clear = false
   self.dead = false
   self.das_dir, self.das_t = 0, 0
@@ -151,7 +154,7 @@ function Player:shift(dir)
   if self:fits(p.x + dir, p.y, p.r) then
     p.x = p.x + dir
     self:touched()
-    self:emit("move")
+    self:emit "move"
     return true
   end
   return false
@@ -162,7 +165,7 @@ function Player:set_rotation(r, turns)
   p.r = r
   p.tang = p.tang + turns * math.pi / 2 -- visual only
   self:touched()
-  self:emit("rotate")
+  self:emit "rotate"
 end
 
 function Player:rotate(dir)
@@ -236,7 +239,11 @@ function Player:update_das(mask)
   local R = self.match.R
   local l, r = mask & B_LEFT ~= 0, mask & B_RIGHT ~= 0
   local dir = 0
-  if l and not r then dir = -1 elseif r and not l then dir = 1 end
+  if l and not r then
+    dir = -1
+  elseif r and not l then
+    dir = 1
+  end
   if dir == 0 then
     self.das_dir, self.das_t = 0, 0
     return 0
@@ -274,7 +281,7 @@ function Player:update_move(mask, pressed, shift)
     self.grounded = false
     self.lock_timer = 0
   else
-    if not self.grounded then self:emit("touch") end
+    if not self.grounded then self:emit "touch" end
     p.y = (p.y // SUB) * SUB
     self.grounded = true
   end
@@ -300,7 +307,9 @@ function Player:lock()
   local sx, sy = p.x + RDX[p.r], p.y + RDY[p.r] * SUB
   -- place the lower puyo first so a vertical pair stacks correctly
   local order = { { p.x, p.y, p.c1 }, { sx, sy, p.c2 } }
-  if sy < p.y then order[1], order[2] = order[2], order[1] end
+  if sy < p.y then
+    order[1], order[2] = order[2], order[1]
+  end
   for k = 1, 2 do
     local x, vy, color = order[k][1], order[k][2], order[k][3]
     local y = b:drop(x, color)
@@ -341,7 +350,7 @@ function Player:update_fall()
       end
     end
   end
-  if landed then self:emit("land") end
+  if landed then self:emit "land" end
   return not busy
 end
 
@@ -364,8 +373,14 @@ function Player:check_chain()
     local total = score + self.leftover
     local tp = m.target_points
     local link = {
-      chain = self.chain, score = score, bonus = bonus, puyos = puyos, colors = ncolors,
-      garbage = total // tp + extra, leftover = total % tp, all_clear = extra > 0,
+      chain = self.chain,
+      score = score,
+      bonus = bonus,
+      puyos = puyos,
+      colors = ncolors,
+      garbage = total // tp + extra,
+      leftover = total % tp,
+      all_clear = extra > 0,
     }
     local mod = m:hook("link", self, link)
     if type(mod) == "table" then link = mod end
@@ -375,8 +390,14 @@ function Player:check_chain()
     self.leftover = math.max(0, toint(link.leftover, 0))
     self.pop = { groups = groups, garbage = b:adjacent_garbage(groups), t = 0 }
     self.state = "pop"
-    self:emit("pop", { chain = self.chain, score = lscore, puyos = puyos, bonus = toint(link.bonus, bonus),
-                       groups = groups, garbage = lgarbage })
+    self:emit("pop", {
+      chain = self.chain,
+      score = lscore,
+      puyos = puyos,
+      bonus = toint(link.bonus, bonus),
+      groups = groups,
+      garbage = lgarbage,
+    })
     m:attack(self, lgarbage)
   else
     if self.chain > 0 then
@@ -386,7 +407,7 @@ function Player:check_chain()
       self:emit("chain_end", { chain = self.chain })
       if b:is_empty() then
         self.all_clear = true
-        self:emit("all_clear")
+        self:emit "all_clear"
       end
     end
     self.chain = 0
@@ -402,7 +423,7 @@ function Player:update_pop()
   local cleared = self.board:clear(pop.groups, pop.garbage)
   self.pop = nil
   self:emit("burst", { cleared = cleared })
-  local moves = self.board:gravity({})
+  local moves = self.board:gravity {}
   for k = 1, #moves do
     local mv = moves[k]
     self:set_fall(idx(mv.x, mv.to), (mv.from - mv.to) * SUB, 0, 0)
@@ -438,8 +459,10 @@ function Player:drop_garbage(n)
   local rows, rem = n // W, n % W
   local extra = {}
   if rem > 0 then
-    local cols = self.rng:shuffle({ 1, 2, 3, 4, 5, 6 })
-    for k = 1, rem do extra[cols[k]] = true end
+    local cols = self.rng:shuffle { 1, 2, 3, 4, 5, 6 }
+    for k = 1, rem do
+      extra[cols[k]] = true
+    end
   end
   for x = 1, W do
     local count = rows + (extra[x] and 1 or 0)
@@ -465,7 +488,7 @@ function Player:prepare_spawn()
   if self.board:get(R.death_x, R.death_y) ~= 0 then
     self.dead = true
     self.state = "dead"
-    self:emit("die")
+    self:emit "die"
     return
   end
   self.state = "spawn_wait"
@@ -484,11 +507,12 @@ function Player:spawn()
     if c1 < 1 or c1 > 5 then c1 = pair[1] end
     if c2 < 1 or c2 > 5 then c2 = pair[2] end
   end
-  self.piece = { x = m.R.spawn_x, y = Rules.VISIBLE * SUB, r = 0, c1 = c1, c2 = c2, ang = 0, tang = 0 }
+  self.piece =
+    { x = m.R.spawn_x, y = Rules.VISIBLE * SUB, r = 0, c1 = c1, c2 = c2, ang = 0, tang = 0 }
   self.lock_timer, self.lock_resets, self.kicks, self.quick_turn = 0, 0, 0, 0
   self.grounded = false
   self.state = "move"
-  self:emit("spawn")
+  self:emit "spawn"
 end
 
 ------------------------------------------------------------------------
@@ -523,9 +547,30 @@ end
 ------------------------------------------------------------------------
 
 local SCALARS = {
-  "seq_i", "state", "timer", "frame", "score", "chain", "max_chain", "chaining", "pending",
-  "leftover", "all_clear", "dead", "das_dir", "das_t", "lock_timer", "lock_resets", "kicks",
-  "quick_turn", "grounded", "prev_mask", "hard_drop_enabled", "pieces", "sent", "chains",
+  "seq_i",
+  "state",
+  "timer",
+  "frame",
+  "score",
+  "chain",
+  "max_chain",
+  "chaining",
+  "pending",
+  "leftover",
+  "all_clear",
+  "dead",
+  "das_dir",
+  "das_t",
+  "lock_timer",
+  "lock_resets",
+  "kicks",
+  "quick_turn",
+  "grounded",
+  "prev_mask",
+  "hard_drop_enabled",
+  "pieces",
+  "sent",
+  "chains",
 }
 
 function Player:save()
@@ -557,15 +602,14 @@ function Player:load(s)
   table.move(s.adelay, 1, N, 1, self.adelay)
   self.rng.s = s.rng
   local p = s.piece
-  self.piece = p and { x = p[1], y = p[2], r = p[3], c1 = p[4], c2 = p[5], ang = p[6], tang = p[7] } or nil
+  self.piece = p and { x = p[1], y = p[2], r = p[3], c1 = p[4], c2 = p[5], ang = p[6], tang = p[7] }
+    or nil
   self.pop = s.pop and { groups = s.pop[1], garbage = s.pop[2], t = s.pop[3] } or nil
 end
 
 local STATE_ID = { wait = 1, spawn_wait = 2, move = 3, fall = 4, pop = 5, garbage = 6, dead = 7 }
 
-local function mix(h, v)
-  return ((h ~ (v & 0xffffffff)) * 16777619) & 0xffffffff
-end
+local function mix(h, v) return ((h ~ (v & 0xffffffff)) * 16777619) & 0xffffffff end
 Player.mix = mix
 
 function Player:hash(h)

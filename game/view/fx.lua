@@ -7,30 +7,43 @@ FX.__index = FX
 
 local rnd = math.random
 
-function FX.new()
-  return setmetatable({ parts = {}, rings = {}, pops = {}, bolts = {} }, FX)
-end
+function FX.new() return setmetatable({ parts = {}, rings = {}, pops = {}, bolts = {} }, FX) end
 
 function FX:burst(x, y, col, n, speed)
   for _ = 1, n do
     local a = rnd() * math.pi * 2
     local s = (0.4 + rnd()) * (speed or 3.2)
     self.parts[#self.parts + 1] = {
-      x = x, y = y, vx = math.cos(a) * s, vy = math.sin(a) * s - 2.2,
-      t = 0, life = 26 + rnd(22), size = 3 + rnd() * 5, col = col, spin = rnd() < 0.3,
+      x = x,
+      y = y,
+      vx = math.cos(a) * s,
+      vy = math.sin(a) * s - 2.2,
+      t = 0,
+      life = 26 + rnd(22),
+      size = 3 + rnd() * 5,
+      col = col,
+      spin = rnd() < 0.3,
     }
   end
 end
 
 function FX:ring(x, y, col, r0, r1, life)
-  self.rings[#self.rings + 1] = { x = x, y = y, col = col, r0 = r0, r1 = r1, t = 0, life = life or 20 }
+  self.rings[#self.rings + 1] =
+    { x = x, y = y, col = col, r0 = r0, r1 = r1, t = 0, life = life or 20 }
 end
 
 function FX:popup(text, x, y, o)
   o = o or {}
   local p = {
-    text = text, x = x, y = y, t = 0, life = o.life or 70, scale = o.scale or 3,
-    col = o.col or UI.YELLOW, rise = o.rise or 0.7, rainbow = o.rainbow,
+    text = text,
+    x = x,
+    y = y,
+    t = 0,
+    life = o.life or 70,
+    scale = o.scale or 3,
+    col = o.col or UI.YELLOW,
+    rise = o.rise or 0.7,
+    rainbow = o.rainbow,
   }
   self.pops[#self.pops + 1] = p
   return p
@@ -45,7 +58,8 @@ end
 
 -- a glowing orb that flies from (x, y) to (tx, ty) along an arc
 function FX:bolt(x, y, tx, ty, col, on_hit)
-  self.bolts[#self.bolts + 1] = { x0 = x, y0 = y, x1 = tx, y1 = ty, t = 0, life = 32, col = col, on_hit = on_hit }
+  self.bolts[#self.bolts + 1] =
+    { x0 = x, y0 = y, x1 = tx, y1 = ty, t = 0, life = 32, col = col, on_hit = on_hit }
 end
 
 function FX:update()
@@ -82,10 +96,10 @@ function FX:draw()
   for _, r in ipairs(self.rings) do
     local k = r.t / r.life
     local rad = r.r0 + (r.r1 - r.r0) * k
-    gfx.blend("add")
+    gfx.blend "add"
     gfx.color(r.col[1], r.col[2], r.col[3], 200 * (1 - k))
     gfx.draw(Sprites.glow, r.x, r.y, 0, rad / 22, rad / 22, 32, 32)
-    gfx.blend("alpha")
+    gfx.blend "alpha"
   end
   for _, p in ipairs(self.parts) do
     local k = 1 - p.t / p.life
@@ -105,7 +119,7 @@ function FX:draw()
     local e = k * k * (3 - 2 * k)
     local x = b.x0 + (b.x1 - b.x0) * e
     local y = b.y0 + (b.y1 - b.y0) * e - math.sin(k * math.pi) * 120
-    gfx.blend("add")
+    gfx.blend "add"
     for tail = 0, 5 do
       local kk = math.max(0, k - tail * 0.03)
       local ee = kk * kk * (3 - 2 * kk)
@@ -116,7 +130,7 @@ function FX:draw()
     end
     gfx.color(255, 255, 255, 255)
     gfx.draw(Sprites.glow, x, y, 0, 0.5, nil, 32, 32)
-    gfx.blend("alpha")
+    gfx.blend "alpha"
   end
   for _, p in ipairs(self.pops) do
     local k = p.t / p.life

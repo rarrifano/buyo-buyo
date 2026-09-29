@@ -54,15 +54,17 @@ return (function()
     end
     -- 4. group bonus (5 puyos -> +2) and color bonus (2 colors -> +3)
     do
-      local _, sc = Board.from_rows { "R.....", "R.....", "R.....", "RR...." }:resolve(R)
+      local _, sc = Board.from_rows({ "R.....", "R.....", "R.....", "RR...." }):resolve(R)
       check("group bonus", sc == 100, sc)
-      _, sc = Board.from_rows { "RG....", "RG....", "RG....", "RG...." }:resolve(R)
+      _, sc = Board.from_rows({ "RG....", "RG....", "RG....", "RG...." }):resolve(R)
       check("color bonus", sc == 240, sc)
     end
     -- 5. the hidden 13th row never pops
     do
       local rows = { "R.....", "R.....", "R.....", "R....." }
-      for k = 1, 9 do rows[#rows + 1] = (k % 2 == 0) and "Y....." or "P....." end
+      for k = 1, 9 do
+        rows[#rows + 1] = (k % 2 == 0) and "Y....." or "P....."
+      end
       local b = Board.from_rows(rows)
       check("13 rows built", b:get(1, 13) == 1 and b:get(1, 10) == 1)
       check("hidden row does not pop", b:find_groups(R.pop) == nil)
@@ -73,11 +75,14 @@ return (function()
       check("chain power 19", R.cp[19] == 512)
       check("link score", Rules.link_score(R, 1, 4, 1, { 4 }) == 40)
       check("group bonus 11+", R.gb[11] == 10 and R.gb[30] == 10)
-      check("margin", Rules.target_points(R, 0) == 70 and Rules.target_points(R, R.margin_time) == 52)
-      local R3 = Rules.make({ pop = 3, colors = 9, gravity = 1.5 })
+      check(
+        "margin",
+        Rules.target_points(R, 0) == 70 and Rules.target_points(R, R.margin_time) == 52
+      )
+      local R3 = Rules.make { pop = 3, colors = 9, gravity = 1.5 }
       check("override pop", R3.pop == 3)
       check("override clamped", R3.colors == 5 and math.type(R3.gravity) == "integer")
-      local _, sc = Board.from_rows { "R.....", "R.....", "R....." }:resolve(R3)
+      local _, sc = Board.from_rows({ "R.....", "R.....", "R....." }):resolve(R3)
       check("pop 3 mode", sc == 30, sc)
     end
     -- 7. deterministic shared sequence
@@ -85,7 +90,9 @@ return (function()
       local a, b = Sequence.new(42, 4), Sequence.new(42, 4)
       local same, legal = true, true
       local allowed = {}
-      for _, c in ipairs(a.palette) do allowed[c] = true end
+      for _, c in ipairs(a.palette) do
+        allowed[c] = true
+      end
       for n = 1, 200 do
         local p, q = a:get(n), b:get(n)
         if p[1] ~= q[1] or p[2] ~= q[2] then same = false end
@@ -163,9 +170,15 @@ return (function()
       for _ = 1, 100 do
         local ok, res = coroutine.resume(co)
         assert(ok, res)
-        if coroutine.status(co) == "dead" then plan = res break end
+        if coroutine.status(co) == "dead" then
+          plan = res
+          break
+        end
       end
-      check("AI produced a plan", plan and plan.x >= 1 and plan.x <= 6 and plan.r >= 0 and plan.r <= 3)
+      check(
+        "AI produced a plan",
+        plan and plan.x >= 1 and plan.x <= 6 and plan.r >= 0 and plan.r <= 3
+      )
     end
 
     print(string.format("rules self-test: %d passed, %d failed", passed, failed))

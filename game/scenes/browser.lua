@@ -15,14 +15,18 @@ local Browser = {}
 Browser.__index = Browser
 
 local TABS = { "chars", "stages", "skins", "modes", "music", "errors" }
-local ACTIONS = { "REMIX INTO MY MODS", "EXPORT SKIN SHEET", "OPEN MODS FOLDER", "RELOAD ALL", "BACK" }
+local ACTIONS =
+  { "REMIX INTO MY MODS", "EXPORT SKIN SHEET", "OPEN MODS FOLDER", "RELOAD ALL", "BACK" }
 local VISIBLE = 11
 
 function Browser.new()
-  return setmetatable({ t = 0, tab = 1, sel = 1, scroll = 0, focus = "list", act = 1, msg = "" }, Browser)
+  return setmetatable(
+    { t = 0, tab = 1, sel = 1, scroll = 0, focus = "list", act = 1, msg = "" },
+    Browser
+  )
 end
 
-function Browser:enter() Jukebox.play("title") end
+function Browser:enter() Jukebox.play "title" end
 
 function Browser:items()
   local kind = TABS[self.tab]
@@ -61,7 +65,7 @@ function Browser:remix(def)
     n = n + 1
     dst = base .. "_" .. n
   end
-  if def.kind == "music" and def.folder:match("/music$") then
+  if def.kind == "music" and def.folder:match "/music$" then
     -- single-file song: make it a folder
     sys.mkdir(dst)
     sys.write_file(dst .. "/song.lua", sys.read_file(def.source) or "")
@@ -105,41 +109,76 @@ function Browser:update()
   local m = Controls.menu
   if self.focus == "list" then
     local n = #self:items()
-    if m:rep("left") then self.tab = (self.tab - 2) % #TABS + 1; self.sel, self.scroll = 1, 0; Sound.play("menu_move") end
-    if m:rep("right") then self.tab = self.tab % #TABS + 1; self.sel, self.scroll = 1, 0; Sound.play("menu_move") end
-    if m:rep("up") and n > 0 then self.sel = (self.sel - 2) % n + 1; Sound.play("menu_move") end
-    if m:rep("down") and n > 0 then self.sel = self.sel % n + 1; Sound.play("menu_move") end
+    if m:rep "left" then
+      self.tab = (self.tab - 2) % #TABS + 1
+      self.sel, self.scroll = 1, 0
+      Sound.play "menu_move"
+    end
+    if m:rep "right" then
+      self.tab = self.tab % #TABS + 1
+      self.sel, self.scroll = 1, 0
+      Sound.play "menu_move"
+    end
+    if m:rep "up" and n > 0 then
+      self.sel = (self.sel - 2) % n + 1
+      Sound.play "menu_move"
+    end
+    if m:rep "down" and n > 0 then
+      self.sel = self.sel % n + 1
+      Sound.play "menu_move"
+    end
     if self.sel <= self.scroll then self.scroll = self.sel - 1 end
     if self.sel > self.scroll + VISIBLE then self.scroll = self.sel - VISIBLE end
     if m.pressed.confirm then
       self.focus = "actions"
-      Sound.play("menu_ok")
+      Sound.play "menu_ok"
       local def = self:current()
-      if def and def.kind == "music" then Jukebox.current = nil; Jukebox.play(def.id) end
+      if def and def.kind == "music" then
+        Jukebox.current = nil
+        Jukebox.play(def.id)
+      end
     end
     if m.pressed.back then
-      Sound.play("menu_back")
+      Sound.play "menu_back"
       Scene.go(require("scenes.title").new(5))
     end
   else
-    if m:rep("up") then self.act = (self.act - 2) % #ACTIONS + 1; Sound.play("menu_move") end
-    if m:rep("down") then self.act = self.act % #ACTIONS + 1; Sound.play("menu_move") end
+    if m:rep "up" then
+      self.act = (self.act - 2) % #ACTIONS + 1
+      Sound.play "menu_move"
+    end
+    if m:rep "down" then
+      self.act = self.act % #ACTIONS + 1
+      Sound.play "menu_move"
+    end
     if m.pressed.back then
       self.focus = "list"
-      Sound.play("menu_back")
-      Jukebox.play("title")
+      Sound.play "menu_back"
+      Jukebox.play "title"
     elseif m.pressed.confirm then
-      Sound.play("menu_ok")
+      Sound.play "menu_ok"
       local a, def = ACTIONS[self.act], self:current()
       if a == "REMIX INTO MY MODS" then
-        if def and def.kind then self:remix(def) else self.msg = "SELECT AN ITEM FIRST" end
+        if def and def.kind then
+          self:remix(def)
+        else
+          self.msg = "SELECT AN ITEM FIRST"
+        end
       elseif a == "EXPORT SKIN SHEET" then
-        if def and def.kind == "skins" then self:export_skin(def) else self.msg = "SELECT A SKIN IN THE SKINS TAB" end
+        if def and def.kind == "skins" then
+          self:export_skin(def)
+        else
+          self.msg = "SELECT A SKIN IN THE SKINS TAB"
+        end
       elseif a == "OPEN MODS FOLDER" then
         local dir = Content.ensure_user_dir()
         if dir then
           sys.clipboard(dir)
-          if not sys.open_url("file://" .. dir) then self.msg = "PATH COPIED: " .. dir:upper() else self.msg = dir:upper() end
+          if not sys.open_url("file://" .. dir) then
+            self.msg = "PATH COPIED: " .. dir:upper()
+          else
+            self.msg = dir:upper()
+          end
         end
       elseif a == "RELOAD ALL" then
         self:reload()
@@ -155,24 +194,22 @@ function Browser:draw_preview(def, x, y)
   local kind = TABS[self.tab]
   if kind == "errors" then
     UI.text((def.kind .. "/" .. def.id):upper(), x, y, 2, "left", { 255, 140, 140 })
-    local msg, yy = def.msg, y + 30
-    while #msg > 0 and yy < 560 do
-      UI.text(msg:sub(1, 46), x, yy, 1.5, "left", UI.WHITE)
-      msg = msg:sub(47)
-      yy = yy + 16
-    end
+    UI.paragraph(def.msg, x, y + 30, 56, 1.5, "left", UI.WHITE, 26)
     return
   end
   UI.text(def.name:upper(), x, y, 3, "left", def.color or UI.YELLOW)
   UI.text("ID " .. def.id .. "   BY " .. def.author:upper(), x, y + 32, 1.5, "left", UI.GRAY)
-  UI.text("FROM " .. def.root:upper() .. (def.overrides and (" (OVERRIDES " .. def.overrides:upper() .. ")") or ""), x, y + 50, 1.5, "left", UI.DIM)
-  local desc = def.description or ""
-  local yy = y + 76
-  while #desc > 0 and yy < y + 130 do
-    UI.text(desc:sub(1, 52), x, yy, 1.5, "left", UI.WHITE)
-    desc = desc:sub(53)
-    yy = yy + 16
-  end
+  UI.text(
+    "FROM "
+      .. def.root:upper()
+      .. (def.overrides and (" (OVERRIDES " .. def.overrides:upper() .. ")") or ""),
+    x,
+    y + 50,
+    1.5,
+    "left",
+    UI.DIM
+  )
+  UI.paragraph(def.description or "", x, y + 76, 56, 1.5, "left", UI.WHITE, 3)
   local py = y + 140
   if kind == "chars" then
     for k, mood in ipairs(Char.MOODS) do
@@ -180,12 +217,26 @@ function Browser:draw_preview(def, x, y)
     end
   elseif kind == "skins" then
     local sk = Skin.get(def.id)
-    for v = 1, 5 do sk:puyo(v, x + 30 + (v - 1) * 70, py + 30, 60, 0, "open") end
+    for v = 1, 5 do
+      sk:puyo(v, x + 30 + (v - 1) * 70, py + 30, 60, 0, "open")
+    end
     -- a connected shape
     local shape = { { 0, 0, 2 | 4 }, { 1, 0, 8 | 4 }, { 0, 1, 1 | 2 }, { 1, 1, 1 | 8 } }
-    for _, c in ipairs(shape) do sk:puyo(1, x + 50 + c[1] * 60, py + 110 + c[2] * 60, 60, c[3], "happy") end
+    for _, c in ipairs(shape) do
+      sk:puyo(1, x + 50 + c[1] * 60, py + 110 + c[2] * 60, 60, c[3], "happy")
+    end
     sk:puyo(6, x + 220, py + 140, 60, 0)
-    UI.text("CELL " .. def.cell .. "  " .. (def.sheet and ("SHEET " .. def.sheet:upper()) or "PAINTED BY CODE"), x, py + 210, 1.5, "left", UI.DIM)
+    UI.text(
+      "CELL "
+        .. def.cell
+        .. "  "
+        .. (def.sheet and ("SHEET " .. def.sheet:upper()) or "PAINTED BY CODE"),
+      x,
+      py + 210,
+      1.5,
+      "left",
+      UI.DIM
+    )
   elseif kind == "stages" then
     UI.text(#(def.layers or {}) .. " IMAGE LAYERS", x, py, 2, "left", UI.GRAY)
     UI.text((def.draw and "SCRIPTED DRAWING" or "NO SCRIPT"), x, py + 26, 2, "left", UI.GRAY)
@@ -194,18 +245,49 @@ function Browser:draw_preview(def, x, y)
     local n = 0
     for k, v in pairs(def.rules or {}) do
       if n < 12 and type(v) ~= "table" then
-        UI.text(string.format("%s = %s", k, tostring(v)):upper(), x, py + n * 20, 1.5, "left", UI.GRAY)
+        UI.text(
+          string.format("%s = %s", k, tostring(v)):upper(),
+          x,
+          py + n * 20,
+          1.5,
+          "left",
+          UI.GRAY
+        )
         n = n + 1
       end
     end
     local hooks = {}
-    for _, h in ipairs { "init", "round_start", "frame", "link", "chain_end", "pair", "garbage", "winner", "hud" } do
+    for _, h in ipairs {
+      "init",
+      "round_start",
+      "frame",
+      "link",
+      "chain_end",
+      "pair",
+      "garbage",
+      "winner",
+      "hud",
+    } do
       if type(def[h]) == "function" then hooks[#hooks + 1] = h end
     end
-    UI.text("HOOKS: " .. (#hooks > 0 and table.concat(hooks, " ") or "none"):upper(), x, py + 250, 1.5, "left", UI.DIM)
+    UI.text(
+      "HOOKS: " .. (#hooks > 0 and table.concat(hooks, " ") or "none"):upper(),
+      x,
+      py + 250,
+      1.5,
+      "left",
+      UI.DIM
+    )
     UI.text("HASH " .. def.hash, x, py + 270, 1.5, "left", UI.DIM)
   elseif kind == "music" then
-    UI.text(def.file and ("FILE " .. def.file:upper()) or ("CHIPTUNE " .. tostring(def.bpm) .. " BPM"), x, py, 2, "left", UI.GRAY)
+    UI.text(
+      def.file and ("FILE " .. def.file:upper()) or ("CHIPTUNE " .. tostring(def.bpm) .. " BPM"),
+      x,
+      py,
+      2,
+      "left",
+      UI.GRAY
+    )
     UI.text("PRESS Z TO PLAY", x, py + 30, 2, "left", UI.DIM)
   end
 end
@@ -220,8 +302,18 @@ function Browser:draw()
     local label = tab:upper() .. " " .. n
     local x = 110 + (k - 1) * 180
     local on = k == self.tab
-    UI.text(label, x + 80, 66, 2, "center", on and UI.YELLOW or (tab == "errors" and n > 0 and { 255, 140, 140 } or UI.GRAY))
-    if on then gfx.color(255, 220, 90); gfx.rect(x + 10, 88, 140, 3) end
+    UI.text(
+      label,
+      x + 80,
+      66,
+      2,
+      "center",
+      on and UI.YELLOW or (tab == "errors" and n > 0 and { 255, 140, 140 } or UI.GRAY)
+    )
+    if on then
+      gfx.color(255, 220, 90)
+      gfx.rect(x + 10, 88, 140, 3)
+    end
   end
   UI.panel(40, 104, 440, 520)
   UI.panel(500, 104, 740, 520)
@@ -231,7 +323,10 @@ function Browser:draw()
     local d = list[i]
     local y = 120 + (i - self.scroll - 1) * 44
     local on = i == self.sel
-    if on then gfx.color(255, 255, 255, 24); gfx.rect(52, y - 6, 416, 38) end
+    if on then
+      gfx.color(255, 255, 255, 24)
+      gfx.rect(52, y - 6, 416, 38)
+    end
     local name = TABS[self.tab] == "errors" and (d.kind .. "/" .. d.id) or d.name
     UI.text(name:upper():sub(1, 24), 64, y, 2, "left", on and UI.YELLOW or UI.WHITE)
     if TABS[self.tab] ~= "errors" and d.root ~= "built-in" then
@@ -247,8 +342,22 @@ function Browser:draw()
     UI.menu(ACTIONS, self.act, 640, 250, self.t, { scale = 2, gap = 52 })
   end
   UI.text(self.msg, 640, 640, 1.5, "center", UI.YELLOW)
-  UI.text("\001\002 TYPE   \003\004 ITEM   Z ACTIONS   X BACK   F5 RELOAD   MODS: " ..
-    ((sys.pref_dir() or "") .. "mods"):upper(), 640, 668, 1.5, "center", UI.DIM)
+  UI.text(
+    "\001\002 TYPE   \003\004 ITEM   Z ACTIONS   X BACK   F5 RELOAD",
+    640,
+    668,
+    1.5,
+    "center",
+    UI.DIM
+  )
+  UI.text(
+    "YOUR MODS: " .. UI.tail((sys.pref_dir() or "") .. "mods", 80),
+    640,
+    690,
+    1.5,
+    "center",
+    UI.DIM
+  )
 end
 
 return Browser

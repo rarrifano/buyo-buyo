@@ -19,7 +19,7 @@ RUN dnf -y install --setopt=install_weak_deps=False \
         gcc make pkgconf-pkg-config binutils curl \
         sdl2-compat-devel lua-devel lua \
         gdb valgrind strace clang-tools-extra \
-        lua-luarocks luarocks unzip \
+        luarocks unzip \
         mesa-dri-drivers mesa-libEGL mesa-libGL mesa-libgbm libdrm \
         libdecor libxkbcommon \
         libwayland-client libwayland-cursor libwayland-egl \
@@ -40,6 +40,13 @@ RUN luarocks install luacheck \
         https://github.com/JohnnyMorganz/StyLua/releases/latest/download/stylua-linux-x86_64.zip \
     && unzip -o /tmp/stylua.zip -d /usr/local/bin && chmod +x /usr/local/bin/stylua \
     && rm /tmp/stylua.zip
+
+# Windows cross-compilation (`make windows`): mingw64 gcc + SDL2 (sdl2-compat
+# on top of SDL3) + zip for packaging. Last layer so the ones above stay cached.
+RUN dnf -y install --setopt=install_weak_deps=False \
+        mingw64-gcc mingw64-sdl2-compat mingw64-SDL3 mingw64-winpthreads-static zip \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf
 
 ENV LANG=C.UTF-8
 WORKDIR /src

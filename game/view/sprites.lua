@@ -73,7 +73,14 @@ end
 
 function Sprites.build()
   local img = gfx.image(S, S)
-  img:fill(shape():capsule(16, 16, 48, 48, 5.5):capsule(16, 48, 48, 16, 5.5), 255, 255, 255, 255, { soft = 1.2 })
+  img:fill(
+    shape():capsule(16, 16, 48, 48, 5.5):capsule(16, 48, 48, 16, 5.5),
+    255,
+    255,
+    255,
+    255,
+    { soft = 1.2 }
+  )
   Sprites.x_mark = img:texture()
 
   img = gfx.image(S, S)
@@ -86,7 +93,11 @@ function Sprites.build()
   Sprites.sparkle = img:texture()
 
   Sprites.icons = {
-    rock = icon_rock(), star = icon_star(), moon = icon_moon(), crown = icon_crown(), comet = icon_comet(),
+    rock = icon_rock(),
+    star = icon_star(),
+    moon = icon_moon(),
+    crown = icon_crown(),
+    comet = icon_comet(),
   }
 end
 

@@ -20,31 +20,54 @@ Field.__index = Field
 Field.CELL = CELL
 
 local TRAY_UNITS = {
-  { 1440, "comet" }, { 720, "crown" }, { 360, "moon" }, { 180, "star" },
-  { 30, "rock" }, { 6, "big" }, { 1, "small" },
+  { 1440, "comet" },
+  { 720, "crown" },
+  { 360, "moon" },
+  { 180, "star" },
+  { 30, "rock" },
+  { 6, "big" },
+  { 1, "small" },
 }
 
 local CHAIN_COLORS = {
-  { 255, 255, 255 }, { 255, 240, 130 }, { 255, 214, 80 }, { 255, 170, 60 },
-  { 255, 120, 70 }, { 255, 80, 110 }, { 255, 90, 210 }, { 190, 120, 255 },
+  { 255, 255, 255 },
+  { 255, 240, 130 },
+  { 255, 214, 80 },
+  { 255, 170, 60 },
+  { 255, 120, 70 },
+  { 255, 80, 110 },
+  { 255, 90, 210 },
+  { 190, 120, 255 },
 }
 
 -- side: -1 = left player, 1 = right player; opts.skin = Skin, opts.ghost = bool
 function Field.new(player, x, y, side, opts)
   opts = opts or {}
   return setmetatable({
-    p = player, x = x, y = y, side = side, skin = opts.skin,
-    w = W * CELL, h = VIS * CELL,
+    p = player,
+    x = x,
+    y = y,
+    side = side,
+    skin = opts.skin,
+    w = W * CELL,
+    h = VIS * CELL,
     fx = FX.new(),
     squash = {},
-    shake = 0, ox = 0, oy = 0,
-    drop = 0, drop_v = 0, dead = false,
-    formula = nil, formula_t = 0,
+    shake = 0,
+    ox = 0,
+    oy = 0,
+    drop = 0,
+    drop_v = 0,
+    dead = false,
+    formula = nil,
+    formula_t = 0,
     banner_t = 0,
     next_t = 0,
-    tray_bump = 0, tray_last = 0,
+    tray_bump = 0,
+    tray_last = 0,
     ghost = opts.ghost ~= false,
-    pop_ref = nil, popset = nil,
+    pop_ref = nil,
+    popset = nil,
     t = 0,
     danger = false,
     incoming = 0,
@@ -61,14 +84,10 @@ function Field:reset()
 end
 
 -- screen centre of a board cell (y in rows, may be fractional)
-function Field:center(x, y)
-  return self.x + (x - 0.5) * CELL, self.y + (VIS - y + 0.5) * CELL
-end
+function Field:center(x, y) return self.x + (x - 0.5) * CELL, self.y + (VIS - y + 0.5) * CELL end
 
 -- where nuisance icons are shown (targets for attack bolts)
-function Field:tray_point()
-  return self.x + 70, self.y - 34
-end
+function Field:tray_point() return self.x + 70, self.y - 34 end
 
 ------------------------------------------------------------------------
 -- events
@@ -129,7 +148,11 @@ function Field:update()
   self.t = self.t + 1
   self.fx:update()
   for i, s in pairs(self.squash) do
-    if s <= 1 then self.squash[i] = nil else self.squash[i] = s - 1 end
+    if s <= 1 then
+      self.squash[i] = nil
+    else
+      self.squash[i] = s - 1
+    end
   end
   if self.shake > 0 then
     self.shake = self.shake * 0.86
@@ -157,8 +180,12 @@ function Field:update()
   if self.tray_bump > 0 then self.tray_bump = math.max(0, self.tray_bump - 0.08) end
   local b = self.p.board
   local R = self.p.match.R
-  self.danger = not self.p.dead and (b:height(R.death_x) >= 10 or b:height(math.max(1, R.death_x - 1)) >= 11
-                                     or b:height(math.min(6, R.death_x + 1)) >= 11)
+  self.danger = not self.p.dead
+    and (
+      b:height(R.death_x) >= 10
+      or b:height(math.max(1, R.death_x - 1)) >= 11
+      or b:height(math.min(6, R.death_x + 1)) >= 11
+    )
 end
 
 -- set of cells currently popping (derived from the simulation state)
@@ -168,9 +195,13 @@ function Field:popping()
   if self.pop_ref ~= pop.groups then
     local set = {}
     for _, g in ipairs(pop.groups) do
-      for _, i in ipairs(g.cells) do set[i] = true end
+      for _, i in ipairs(g.cells) do
+        set[i] = true
+      end
     end
-    for _, i in ipairs(pop.garbage) do set[i] = true end
+    for _, i in ipairs(pop.garbage) do
+      set[i] = true
+    end
     self.pop_ref, self.popset = pop.groups, set
   end
   return self.popset
@@ -182,10 +213,22 @@ end
 
 local function connections(c, aoff, x, y, v)
   local m = 0
-  if y < VIS then local j = idx(x, y + 1); if c[j] == v and aoff[j] == 0 then m = m | 1 end end
-  if x < W then local j = idx(x + 1, y); if c[j] == v and aoff[j] == 0 then m = m | 2 end end
-  if y > 1 then local j = idx(x, y - 1); if c[j] == v and aoff[j] == 0 then m = m | 4 end end
-  if x > 1 then local j = idx(x - 1, y); if c[j] == v and aoff[j] == 0 then m = m | 8 end end
+  if y < VIS then
+    local j = idx(x, y + 1)
+    if c[j] == v and aoff[j] == 0 then m = m | 1 end
+  end
+  if x < W then
+    local j = idx(x + 1, y)
+    if c[j] == v and aoff[j] == 0 then m = m | 2 end
+  end
+  if y > 1 then
+    local j = idx(x, y - 1)
+    if c[j] == v and aoff[j] == 0 then m = m | 4 end
+  end
+  if x > 1 then
+    local j = idx(x - 1, y)
+    if c[j] == v and aoff[j] == 0 then m = m | 8 end
+  end
   return m
 end
 
@@ -232,10 +275,15 @@ function Field:draw_cells()
           if v ~= GARBAGE and off == 0 and y <= VIS then mask = connections(c, aoff, x, y, v) end
           local popping = popset and popset[i]
           local face = "open"
-          if popping then face = "happy"
-          elseif p.dead then face = "dizzy"
-          elseif self.danger then face = "worried"
-          elseif (p.frame + i * 53) % 290 < 7 then face = "blink" end
+          if popping then
+            face = "happy"
+          elseif p.dead then
+            face = "dizzy"
+          elseif self.danger then
+            face = "worried"
+          elseif (p.frame + i * 53) % 290 < 7 then
+            face = "blink"
+          end
           if popping and pt > shrink_from then
             local k = (pt - shrink_from) / (pop_time - shrink_from)
             skin:puyo(v, cx, cy, CELL * (1 - 0.55 * k), mask, face, 255 * (1 - k))
@@ -249,10 +297,10 @@ function Field:draw_cells()
             end
             skin:puyo(v, cx, cy, CELL, mask, face, 255, sx, sy)
             if popping and (pt // 4) % 2 == 0 then
-              gfx.blend("add")
+              gfx.blend "add"
               gfx.color(255, 255, 255, 200)
               gfx.draw(Sprites.glow, cx, cy, 0, CELL / 44, nil, 32, 32)
-              gfx.blend("alpha")
+              gfx.blend "alpha"
             end
           end
         end
@@ -269,7 +317,9 @@ function Field:draw_piece()
     local x1, y1, x2, y2 = p:landing()
     for k = 1, 2 do
       local gx, gy, col = x1, y1, pc.c1
-      if k == 2 then gx, gy, col = x2, y2, pc.c2 end
+      if k == 2 then
+        gx, gy, col = x2, y2, pc.c2
+      end
       if gy <= VIS then
         local cx, cy = self:center(gx, gy)
         local cc = skin:color(col)
@@ -283,10 +333,10 @@ function Field:draw_piece()
   local px, py = self:center(pc.x, pc.y / SUB)
   local sx, sy = px + math.sin(pc.ang) * CELL, py - math.cos(pc.ang) * CELL
   local pulse = 0.5 + 0.5 * math.sin(p.frame * 0.3)
-  gfx.blend("add")
+  gfx.blend "add"
   gfx.color(255, 255, 255, 45 + 70 * pulse)
   gfx.draw(Sprites.glow, px, py, 0, 1.25, nil, 32, 32)
-  gfx.blend("alpha")
+  gfx.blend "alpha"
   skin:puyo(pc.c2, sx, sy, CELL, 0, "open")
   skin:puyo(pc.c1, px, py, CELL, 0, "open")
 end

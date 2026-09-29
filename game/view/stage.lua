@@ -35,13 +35,23 @@ function Stage.new(def)
       if type(L) == "table" and type(L.image) == "string" then
         local p, err = Content.path(def, L.image)
         local tex, w, h
-        if p then tex, w, h = gfx.load(p, L.filter) end
+        if p then
+          tex, w, h = gfx.load(p, L.filter)
+        end
         if tex then
           st.layers[#st.layers + 1] = {
-            tex = tex, w = w, h = h, x = tonumber(L.x) or 0, y = tonumber(L.y) or 0,
-            sx = tonumber(L.scroll_x) or 0, sy = tonumber(L.scroll_y) or 0,
-            tile = L.tile == true, scale = tonumber(L.scale) or 1, fit = L.fit == true,
-            alpha = tonumber(L.alpha) or 255, blend = L.blend == "add" and "add" or "alpha",
+            tex = tex,
+            w = w,
+            h = h,
+            x = tonumber(L.x) or 0,
+            y = tonumber(L.y) or 0,
+            sx = tonumber(L.scroll_x) or 0,
+            sy = tonumber(L.scroll_y) or 0,
+            tile = L.tile == true,
+            scale = tonumber(L.scale) or 1,
+            fit = L.fit == true,
+            alpha = tonumber(L.alpha) or 255,
+            blend = L.blend == "add" and "add" or "alpha",
             color = rgb(L.color, { 255, 255, 255 }),
           }
         else
@@ -88,13 +98,15 @@ local function draw_layer(L, t)
 end
 
 function Stage:draw()
-  gfx.blend("alpha")
+  gfx.blend "alpha"
   gfx.color(255, 255, 255)
   gfx.stretch(self.grad, 0, 0, 1280, 720)
-  for _, L in ipairs(self.layers) do draw_layer(L, self.t) end
-  gfx.blend("alpha")
+  for _, L in ipairs(self.layers) do
+    draw_layer(L, self.t)
+  end
+  gfx.blend "alpha"
   if self.def then Content.call(self.def, "draw", self.state, self.t) end
-  gfx.blend("alpha")
+  gfx.blend "alpha"
   gfx.color(255, 255, 255)
 end
 

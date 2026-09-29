@@ -6,7 +6,7 @@ return {
   description = "Faster falling, snappier locks, cheaper nuisance and margin time after 30 seconds.",
   order = 2,
   rules = {
-    gravity = 64,          -- sub-rows per frame (1024 = one row): ~2.3x faster
+    gravity = 64, -- sub-rows per frame (1024 = one row): ~2.3x faster
     das = 7,
     lock_delay = 18,
     pop_time = 30,

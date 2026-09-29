@@ -6,10 +6,12 @@ local Code = {}
 local ALPHA = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 function Code.encode(ip, port)
-  local a, b, c, d = (ip or ""):match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")
+  local a, b, c, d = (ip or ""):match "^(%d+)%.(%d+)%.(%d+)%.(%d+)$"
   if not a then return nil end
   a, b, c, d = tonumber(a), tonumber(b), tonumber(c), tonumber(d)
-  if a > 255 or b > 255 or c > 255 or d > 255 or not port or port < 1 or port > 65535 then return nil end
+  if a > 255 or b > 255 or c > 255 or d > 255 or not port or port < 1 or port > 65535 then
+    return nil
+  end
   local n = (a << 40) | (b << 32) | (c << 24) | (d << 16) | port
   local chars = {}
   for i = 10, 1, -1 do
@@ -30,7 +32,8 @@ function Code.decode(code)
     n = (n << 5) | (p - 1)
   end
   local port = n & 0xffff
-  local ip = string.format("%d.%d.%d.%d", (n >> 40) & 255, (n >> 32) & 255, (n >> 24) & 255, (n >> 16) & 255)
+  local ip =
+    string.format("%d.%d.%d.%d", (n >> 40) & 255, (n >> 32) & 255, (n >> 24) & 255, (n >> 16) & 255)
   if port == 0 then return nil end
   return ip, port
 end
@@ -41,12 +44,14 @@ function Code.parse(text, default_port)
   text = (text or ""):gsub("^%s+", ""):gsub("%s+$", "")
   local ip, port = Code.decode(text)
   if ip then return ip, port end
-  local h, p = text:match("^([%w%.%-]+):(%d+)$")
-  if not h then h, p = text:match("^([%w%.%-]+)$"), default_port end
+  local h, p = text:match "^([%w%.%-]+):(%d+)$"
+  if not h then
+    h, p = text:match "^([%w%.%-]+)$", default_port
+  end
   if not h or h == "" then return nil end
   p = tonumber(p)
   if not p or p < 1 or p > 65535 then return nil end
-  if h:match("^%d+%.%d+%.%d+%.%d+$") then return h, p end
+  if h:match "^%d+%.%d+%.%d+%.%d+$" then return h, p end
   return h, p, "resolve"
 end
 

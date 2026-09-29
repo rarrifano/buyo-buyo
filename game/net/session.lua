@@ -21,19 +21,40 @@ Session.__index = Session
 Session.DEFAULT_PORT = 7777
 local MAGIC = "BUY"
 local PROTO = 1
-local T = { HELLO = 1, LOBBY = 2, START = 3, START_ACK = 4, INPUT = 5, PING = 6, PONG = 7, CHECK = 8, BYE = 9 }
+local T = {
+  HELLO = 1,
+  LOBBY = 2,
+  START = 3,
+  START_ACK = 4,
+  INPUT = 5,
+  PING = 6,
+  PONG = 7,
+  CHECK = 8,
+  BYE = 9,
+}
 Session.T = T
+
+-- a random 31-bit id; mixes several entropy sources so two game processes
+-- started at the same moment on the same machine never collide
+function Session.new_nonce()
+  local addr = tonumber(tostring({}):match "0x(%x+)" or "0", 16) or 0
+  local t = math.floor(sys.time() * 1e6)
+  local n = (math.random(0, 0x7fffffff) ~ (t * 2654435761) ~ (addr * 40503)) & 0x7fffffff
+  return n == 0 and 1 or n
+end
 
 -- opts: port, name, sim = { lag = ms, jitter = ms, loss = percent } (testing)
 function Session.new(opts)
   opts = opts or {}
   local sock, err = net.udp(opts.port or Session.DEFAULT_PORT)
-  if not sock then sock, err = net.udp(0) end
+  if not sock then
+    sock, err = net.udp(0)
+  end
   if not sock then return nil, err end
   local s = setmetatable({}, Session)
   s.sock = sock
   s.port = sock:port()
-  s.nonce = math.random(1, 0x7ffffffe)
+  s.nonce = Session.new_nonce()
   s.name = (opts.name or "player"):sub(1, 16)
   s.state = "idle" -- idle | waiting | connecting | handshake | connected | closed
   s.lan_ip = net.local_ip() or "127.0.0.1"
@@ -46,9 +67,7 @@ function Session.new(opts)
   return s
 end
 
-function Session:push(name, data)
-  self.events[#self.events + 1] = { name = name, data = data or {} }
-end
+function Session:push(name, data) self.events[#self.events + 1] = { name = name, data = data or {} } end
 
 -- take the queued events
 function Session:poll()
@@ -91,8 +110,17 @@ function Session:send(typ, body)
 end
 
 function Session:hello_packet()
-  return self:packet(T.HELLO, string.pack("<I2I4I4s1s1", PROTO, self.nonce, self.peer_nonce or 0,
-    Content.core_hash(), self.name))
+  return self:packet(
+    T.HELLO,
+    string.pack(
+      "<I2I4I4s1s1",
+      PROTO,
+      self.nonce,
+      self.peer_nonce or 0,
+      Content.core_hash(),
+      self.name
+    )
+  )
 end
 
 function Session:send_lobby(tbl) self:send(T.LOBBY, Pack.encode(tbl)) end
@@ -103,7 +131,9 @@ function Session:send_check(frame, sum) self:send(T.CHECK, string.pack("<I4I4", 
 -- inputs for frames start.. (list of masks), our ack of their inputs, our frame
 function Session:send_input(start, masks, ack, frame)
   local bytes = {}
-  for i = 1, #masks do bytes[i] = string.char(masks[i] & 0xff) end
+  for i = 1, #masks do
+    bytes[i] = string.char(masks[i] & 0xff)
+  end
   self:send(T.INPUT, string.pack("<I4I4i4I1", start, frame, ack, #masks) .. table.concat(bytes))
 end
 
@@ -127,12 +157,17 @@ function Session:set_connected()
   if self.state == "connected" then return end
   self.state = "connected"
   self:raw_send(self.peer.ip, self.peer.port, self:hello_packet())
-  self:push("connected", { host = self:is_host(), name = self.peer_name, ip = self.peer.ip, port = self.peer.port })
+  self:push(
+    "connected",
+    { host = self:is_host(), name = self.peer_name, ip = self.peer.ip, port = self.peer.port }
+  )
 end
 
 function Session:close(reason)
   if self.state == "connected" or self.state == "handshake" then
-    for _ = 1, 3 do self:send(T.BYE) end
+    for _ = 1, 3 do
+      self:send(T.BYE)
+    end
     if self.sim then self:flush(math.huge) end
   end
   self.state = "closed"
@@ -146,7 +181,8 @@ end
 function Session:start_stun(servers)
   self.stun = { t0 = sys.time(), txid = Stun.new_txid(), pending = {} }
   for _, s in ipairs(servers or Stun.SERVERS) do
-    self.stun.pending[#self.stun.pending + 1] = { host = s[1], port = s[2], res = net.resolve(s[1]) }
+    self.stun.pending[#self.stun.pending + 1] =
+      { host = s[1], port = s[2], res = net.resolve(s[1]) }
   end
 end
 
@@ -199,19 +235,31 @@ function Session:on_packet(data, ip, port, now)
     local ok, proto, nonce, seen, hash, name = pcall(string.unpack, "<I2I4I4s1s1", data, 9)
     if not ok then return end
     if proto ~= PROTO then
-      self:push("error", { msg = "the other player runs an incompatible version (protocol " .. proto .. ")" })
+      self:push(
+        "error",
+        { msg = "the other player runs an incompatible version (protocol " .. proto .. ")" }
+      )
       return
     end
     if self.state == "connected" then
-      if nonce == self.peer_nonce and seen ~= self.nonce then self:raw_send(ip, port, self:hello_packet()) end
+      if nonce == self.peer_nonce and seen ~= self.nonce then
+        self:raw_send(ip, port, self:hello_packet())
+      end
       return
     end
-    if self.state ~= "waiting" and self.state ~= "connecting" and self.state ~= "handshake" then return end
+    if self.state ~= "waiting" and self.state ~= "connecting" and self.state ~= "handshake" then
+      return
+    end
     if hash ~= Content.core_hash() then
       self:push("error", { msg = "the other player has a different game version" })
       return
     end
     if self.peer_nonce and nonce ~= self.peer_nonce then return end -- someone else
+    if nonce == self.nonce then
+      -- astronomically unlikely, but host/guest roles depend on nonces differing
+      self.nonce = Session.new_nonce()
+      return
+    end
     self.peer = { ip = ip, port = port }
     self.peer_nonce = nonce
     self.peer_name = name
@@ -231,7 +279,9 @@ function Session:on_packet(data, ip, port, now)
 
   if typ == T.INPUT then
     local ok, start, frame, ack, count, pos = pcall(string.unpack, "<I4I4i4I1", data, 9)
-    if ok and self.on_input then self.on_input(start, data:sub(pos, pos + count - 1), ack, frame) end
+    if ok and self.on_input then
+      self.on_input(start, data:sub(pos, pos + count - 1), ack, frame)
+    end
   elseif typ == T.CHECK then
     local ok, frame, sum = pcall(string.unpack, "<I4I4", data, 9)
     if ok and self.on_check then self.on_check(frame, sum) end
@@ -250,7 +300,7 @@ function Session:on_packet(data, ip, port, now)
     local cfg = Pack.decode(data, 9)
     if type(cfg) == "table" then self:push("start", cfg) end
   elseif typ == T.START_ACK then
-    self:push("start_ack")
+    self:push "start_ack"
   elseif typ == T.BYE then
     self.state = "closed"
     self:push("disconnected", { reason = "the other player left" })
@@ -279,7 +329,9 @@ function Session:update()
     self:on_packet(data, ip, port, now)
   end
   self:update_stun(now)
-  if (self.state == "connecting" or self.state == "handshake") and now - (self.hello_t or 0) > 0.15 then
+  if
+    (self.state == "connecting" or self.state == "handshake") and now - (self.hello_t or 0) > 0.15
+  then
     self.hello_t = now
     local dst = self.peer or self.target
     if dst then self:raw_send(dst.ip, dst.port, self:hello_packet()) end
@@ -290,14 +342,14 @@ function Session:update()
       self:send(T.PING, string.pack("<d", now))
     end
     if now - self.last_recv > 6 then
-      self:close("timeout")
+      self:close "timeout"
       self:push("disconnected", { reason = "connection lost" })
     end
   end
 end
 
 function Session:destroy()
-  if self.state ~= "closed" then self:close("quit") end
+  if self.state ~= "closed" then self:close "quit" end
   self.sock:close()
 end
 

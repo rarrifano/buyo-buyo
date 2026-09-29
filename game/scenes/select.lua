@@ -30,11 +30,11 @@ end
 -- opts: mode, session (online), bot (auto-pick + CPU input, for tests), quit_at_end
 function Select.new(opts)
   local s = setmetatable({ opts = opts, t = 0, step = "chars", ctl = {}, start_t = 0 }, Select)
-  s.chars = Content.list("chars")
+  s.chars = Content.list "chars"
   s.ncells = #s.chars + 1 -- last cell = random
-  s.modes = Content.list("modes")
-  s.stages = Content.list("stages")
-  s.songs = Content.list("music")
+  s.modes = Content.list "modes"
+  s.stages = Content.list "stages"
+  s.songs = Content.list "music"
   local st = Settings.data
   s.slots = {
     { cursor = index_of(s.chars, st.char1) or 1, locked = false },
@@ -53,8 +53,12 @@ function Select.new(opts)
     s.slots[3 - s.me].cursor = 0
   end
   s.opt = {
-    mode = index_of(s.modes, st.mode) or 1, stage = 0, music = 0,
-    first_to = st.first_to, level1 = st.cpu_level, level2 = st.cpu_level,
+    mode = index_of(s.modes, st.mode) or 1,
+    stage = 0,
+    music = 0,
+    first_to = st.first_to,
+    level1 = st.cpu_level,
+    level2 = st.cpu_level,
   }
   s.opt_sel = 1
   return s
@@ -69,7 +73,9 @@ function Select:enter()
 end
 
 function Select:leave()
-  for _, c in pairs(self.ctl) do Controls.unregister(c) end
+  for _, c in pairs(self.ctl) do
+    Controls.unregister(c)
+  end
 end
 
 ------------------------------------------------------------------------
@@ -98,9 +104,7 @@ function Select:option_rows()
   return rows
 end
 
-function Select:can_edit_options()
-  return self.opts.mode ~= "online" or self.me == 1
-end
+function Select:can_edit_options() return self.opts.mode ~= "online" or self.me == 1 end
 
 function Select:move_cursor(slot, dx, dy)
   local n = self.ncells
@@ -112,7 +116,7 @@ function Select:move_cursor(slot, dx, dy)
   end
   if c ~= slot.cursor then
     slot.cursor = c
-    Sound.play("menu_move")
+    Sound.play "menu_move"
   end
 end
 
@@ -122,7 +126,7 @@ function Select:lock(slot)
   if c > #self.chars then c = math.random(1, #self.chars) end
   slot.char = self.chars[c] and self.chars[c].id
   slot.locked = true
-  Sound.play("menu_ok")
+  Sound.play "menu_ok"
   local def = self.chars[c]
   if def then Char.voice(def, "start", 1, 0) end
 end
@@ -130,7 +134,7 @@ end
 function Select:unlock(slot)
   if slot.locked then
     slot.locked = false
-    Sound.play("menu_back")
+    Sound.play "menu_back"
     return true
   end
   return false
@@ -146,17 +150,19 @@ function Select:update_chars()
     for i = 1, 2 do
       local c, slot = self.ctl[i], self.slots[i]
       if not slot.locked then
-        if c:rep("left") then self:move_cursor(slot, -1, 0) end
-        if c:rep("right") then self:move_cursor(slot, 1, 0) end
-        if c:rep("up") then self:move_cursor(slot, 0, -1) end
-        if c:rep("down") then self:move_cursor(slot, 0, 1) end
+        if c:rep "left" then self:move_cursor(slot, -1, 0) end
+        if c:rep "right" then self:move_cursor(slot, 1, 0) end
+        if c:rep "up" then self:move_cursor(slot, 0, -1) end
+        if c:rep "down" then self:move_cursor(slot, 0, 1) end
         if c.pressed.rot_r or c.pressed.rot_l then self:lock(slot) end
       elseif c.pressed.rot_l then
         self:unlock(slot)
       end
     end
     local m = Controls.menu
-    if m.pressed.back and not self.slots[1].locked and not self.slots[2].locked then return self:quit() end
+    if m.pressed.back and not self.slots[1].locked and not self.slots[2].locked then
+      return self:quit()
+    end
     if m.pressed.confirm then
       for i = 1, 2 do
         if not self.slots[i].locked then return self:lock(self.slots[i]) end
@@ -167,10 +173,10 @@ function Select:update_chars()
     local a = self:active_slot()
     if a then
       local slot = self.slots[a]
-      if m:rep("left") then self:move_cursor(slot, -1, 0) end
-      if m:rep("right") then self:move_cursor(slot, 1, 0) end
-      if m:rep("up") then self:move_cursor(slot, 0, -1) end
-      if m:rep("down") then self:move_cursor(slot, 0, 1) end
+      if m:rep "left" then self:move_cursor(slot, -1, 0) end
+      if m:rep "right" then self:move_cursor(slot, 1, 0) end
+      if m:rep "up" then self:move_cursor(slot, 0, -1) end
+      if m:rep "down" then self:move_cursor(slot, 0, 1) end
       if m.pressed.confirm and not slot.locked then self:lock(slot) end
     end
     if m.pressed.back then
@@ -189,14 +195,20 @@ end
 
 function Select:change_option(key, dir)
   local o = self.opt
-  if key == "mode" then o.mode = (o.mode - 1 + dir) % math.max(1, #self.modes) + 1
-  elseif key == "stage" then o.stage = (o.stage + dir) % (#self.stages + 1)
-  elseif key == "music" then o.music = (o.music + dir) % (#self.songs + 1)
-  elseif key == "first_to" then o.first_to = (o.first_to - 1 + dir) % 5 + 1
-  elseif key == "level1" then o.level1 = (o.level1 - 1 + dir) % #AI.LEVELS + 1
-  elseif key == "level2" then o.level2 = (o.level2 - 1 + dir) % #AI.LEVELS + 1
+  if key == "mode" then
+    o.mode = (o.mode - 1 + dir) % math.max(1, #self.modes) + 1
+  elseif key == "stage" then
+    o.stage = (o.stage + dir) % (#self.stages + 1)
+  elseif key == "music" then
+    o.music = (o.music + dir) % (#self.songs + 1)
+  elseif key == "first_to" then
+    o.first_to = (o.first_to - 1 + dir) % 5 + 1
+  elseif key == "level1" then
+    o.level1 = (o.level1 - 1 + dir) % #AI.LEVELS + 1
+  elseif key == "level2" then
+    o.level2 = (o.level2 - 1 + dir) % #AI.LEVELS + 1
   end
-  Sound.play("menu_move")
+  Sound.play "menu_move"
 end
 
 function Select:update_options()
@@ -204,17 +216,26 @@ function Select:update_options()
   local rows = self:option_rows()
   if m.pressed.back then
     self.step = "chars"
-    if self.opts.mode == "online" then self:unlock(self.slots[self.me])
-    else self:unlock(self.slots[2]) end
+    if self.opts.mode == "online" then
+      self:unlock(self.slots[self.me])
+    else
+      self:unlock(self.slots[2])
+    end
     return
   end
   if not self:can_edit_options() then return end
-  if m:rep("up") then self.opt_sel = (self.opt_sel - 2) % #rows + 1; Sound.play("menu_move") end
-  if m:rep("down") then self.opt_sel = self.opt_sel % #rows + 1; Sound.play("menu_move") end
+  if m:rep "up" then
+    self.opt_sel = (self.opt_sel - 2) % #rows + 1
+    Sound.play "menu_move"
+  end
+  if m:rep "down" then
+    self.opt_sel = self.opt_sel % #rows + 1
+    Sound.play "menu_move"
+  end
   local key = rows[self.opt_sel]
   if key ~= "start" then
-    if m:rep("left") then self:change_option(key, -1) end
-    if m:rep("right") then self:change_option(key, 1) end
+    if m:rep "left" then self:change_option(key, -1) end
+    if m:rep "right" then self:change_option(key, 1) end
   elseif m.pressed.confirm then
     self:start()
   end
@@ -246,9 +267,14 @@ function Select:update_online()
     local me = self.slots[self.me]
     local c = me.cursor <= #self.chars and self.chars[me.cursor] or nil
     local shown = Content.get("chars", me.char) or c
-    local msg = { cursor = me.cursor, locked = me.locked, char = me.char or (c and c.id),
-                  char_name = shown and shown.name or "?", char_color = shown and shown.color,
-                  hard_drop = Settings.data.hard_drop }
+    local msg = {
+      cursor = me.cursor,
+      locked = me.locked,
+      char = me.char or (c and c.id),
+      char_name = shown and shown.name or "?",
+      char_color = shown and shown.color,
+      hard_drop = Settings.data.hard_drop,
+    }
     if self.me == 1 then msg.opt = self:resolved_options() end
     s:send_lobby(msg)
   end
@@ -265,7 +291,9 @@ function Select:update_auto()
     self.slots[me].cursor = self.ncells
     self:lock(self.slots[me])
   end
-  if self.step == "options" and me == 1 and not self.pending_start and self.t > 70 then self:start() end
+  if self.step == "options" and me == 1 and not self.pending_start and self.t > 70 then
+    self:start()
+  end
 end
 
 function Select:update()
@@ -280,7 +308,11 @@ function Select:update()
     self:update_online()
     if Scene.busy() then return end
   end
-  if self.step == "chars" then self:update_chars() else self:update_options() end
+  if self.step == "chars" then
+    self:update_chars()
+  else
+    self:update_options()
+  end
 end
 
 ------------------------------------------------------------------------
@@ -292,20 +324,30 @@ function Select:resolved_options()
   local o = self.opt
   local mode = self.modes[o.mode]
   return {
-    mode = mode and mode.id, mode_hash = mode and mode.hash, mode_name = mode and mode.name,
+    mode = mode and mode.id,
+    mode_hash = mode and mode.hash,
+    mode_name = mode and mode.name,
     stage = o.stage > 0 and self.stages[o.stage].id or "auto",
     music = o.music > 0 and self.songs[o.music].id or "auto",
-    first_to = o.first_to, level1 = o.level1, level2 = o.level2,
+    first_to = o.first_to,
+    level1 = o.level1,
+    level2 = o.level2,
   }
 end
 
 function Select:build_config(o, seed)
   local cfg = {
-    kind = self.opts.mode, seed = seed, mode_id = o.mode, mode_hash = o.mode_hash, first_to = o.first_to,
-    stage_id = o.stage, music_id = o.music,
+    kind = self.opts.mode,
+    seed = seed,
+    mode_id = o.mode,
+    mode_hash = o.mode_hash,
+    first_to = o.first_to,
+    stage_id = o.stage,
+    music_id = o.music,
     colors = Settings.data.colors,
     players = {},
-    net_bot = self.opts.bot, quit_at_end = self.opts.quit_at_end,
+    net_bot = self.opts.bot,
+    quit_at_end = self.opts.quit_at_end,
   }
   for i = 1, 2 do
     local slot = self.slots[i]
@@ -341,7 +383,7 @@ function Select:start()
     self.opts.session:send_start(cfg)
     return
   end
-  self:launch({ cfg = cfg })
+  self:launch { cfg = cfg }
 end
 
 -- guest: validate the host's START and go
@@ -353,7 +395,7 @@ function Select:accept_start(cfg)
   end
   self.opts.session:send_start_ack()
   cfg.players[1].remote, cfg.players[2].remote = true, false
-  self:launch({ cfg = cfg })
+  self:launch { cfg = cfg }
 end
 
 function Select:launch(p)
@@ -372,7 +414,7 @@ end
 
 function Select:quit()
   if self.opts.session then self.opts.session:destroy() end
-  Sound.play("menu_back")
+  Sound.play "menu_back"
   Scene.go(require("scenes.title").new())
 end
 
@@ -409,7 +451,8 @@ function Select:draw_portrait(i)
     UI.outline("?", x + 180, 190, 14, "center", UI.YELLOW)
     UI.text("RANDOM", x + 180, 426, 3, "center", UI.YELLOW)
   end
-  local who = slot.kind == "cpu" and "CPU" or (slot.kind == "remote" and "REMOTE" or (i == 1 and "1P" or "2P"))
+  local who = slot.kind == "cpu" and "CPU"
+    or (slot.kind == "remote" and "REMOTE" or (i == 1 and "1P" or "2P"))
   UI.text(who, x + 16, 84, 2, "left", col)
   if slot.locked then UI.text("READY!", x + 344, 84, 2, "right", UI.YELLOW) end
 end
@@ -419,7 +462,8 @@ function Select:draw_grid()
   local cols = math.min(COLS, n)
   local rows = math.ceil(n / cols)
   local focus = self.slots[self:active_slot() or 1].cursor
-  local first_row = math.max(0, math.min(rows - ROWS_VISIBLE, (math.max(focus, 1) - 1) // cols - ROWS_VISIBLE + 1))
+  local first_row =
+    math.max(0, math.min(rows - ROWS_VISIBLE, (math.max(focus, 1) - 1) // cols - ROWS_VISIBLE + 1))
   local width = cols * CELL + (cols - 1) * GAP
   local x0 = 640 - width / 2
   for k = 1, n do
@@ -441,15 +485,34 @@ function Select:draw_grid()
           local col = i == 1 and UI.P1 or UI.P2
           local pulse = slot.locked and 255 or (160 + 95 * math.abs(math.sin(self.t * 0.12)))
           gfx.color(col[1], col[2], col[3], pulse)
-          gfx.rect_line(x - 4 + (i - 1) * 3, y - 4 + (i - 1) * 3, CELL + 8 - (i - 1) * 6, CELL + 8 - (i - 1) * 6, 4)
-          UI.text(i == 1 and "1P" or "2P", x + (i == 1 and 4 or CELL - 4), y + CELL - 16, 1.5,
-                  i == 1 and "left" or "right", col)
+          gfx.rect_line(
+            x - 4 + (i - 1) * 3,
+            y - 4 + (i - 1) * 3,
+            CELL + 8 - (i - 1) * 6,
+            CELL + 8 - (i - 1) * 6,
+            4
+          )
+          UI.text(
+            i == 1 and "1P" or "2P",
+            x + (i == 1 and 4 or CELL - 4),
+            y + CELL - 16,
+            1.5,
+            i == 1 and "left" or "right",
+            col
+          )
         end
       end
     end
   end
   if rows > ROWS_VISIBLE then
-    UI.text(string.format("%d/%d", first_row + 1, rows - ROWS_VISIBLE + 1), 640 + width / 2, GRID_Y - 20, 1.5, "right", UI.DIM)
+    UI.text(
+      string.format("%d/%d", first_row + 1, rows - ROWS_VISIBLE + 1),
+      640 + width / 2,
+      GRID_Y - 20,
+      1.5,
+      "right",
+      UI.DIM
+    )
   end
 end
 
@@ -483,14 +546,19 @@ function Select:draw_options()
       UI.text(l[1], 440, y, 2, "left", on and UI.YELLOW or UI.GRAY)
       local v = tostring(l[2]):upper()
       if #v > 18 then v = v:sub(1, 17) .. "." end
-      UI.text(on and ("\001 " .. v .. " \002") or v, 840, y, 2, "right", on and UI.YELLOW or UI.WHITE)
+      UI.text(
+        on and ("\001 " .. v .. " \002") or v,
+        840,
+        y,
+        2,
+        "right",
+        on and UI.YELLOW or UI.WHITE
+      )
     end
   end
   local mode = self.modes[o.mode]
   if mode and mode.description and not ro then
-    local d = mode.description
-    if #d > 52 then d = d:sub(1, 51) .. "." end
-    UI.text(d, 640, 460, 1.5, "center", UI.DIM)
+    UI.paragraph(mode.description, 640, 424, 34, 1.5, "center", UI.DIM, 3)
   end
   if not self:can_edit_options() then
     UI.text("THE HOST IS CHOOSING...", 640, 440, 2, "center", UI.GRAY)
@@ -521,7 +589,14 @@ function Select:draw()
   self:draw_grid()
   if self.opts.mode == "online" then
     local s = self.opts.session
-    UI.text(string.format("VS %s   PING %dms", (s.peer_name or "?"):upper(), math.floor(s.rtt * 1000)), 640, 694, 2, "center", UI.DIM)
+    UI.text(
+      string.format("VS %s   PING %dms", (s.peer_name or "?"):upper(), math.floor(s.rtt * 1000)),
+      640,
+      694,
+      2,
+      "center",
+      UI.DIM
+    )
   end
   if self.error then
     gfx.color(0, 0, 0, 180)

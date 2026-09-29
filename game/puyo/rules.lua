@@ -9,38 +9,60 @@
 -- Row 13 is the hidden row: puyos can rest there but never pop.
 local Rules = {}
 
-Rules.SUB = 1024                 -- sub-row units per row (falling positions)
+Rules.SUB = 1024 -- sub-row units per row (falling positions)
 Rules.COLS, Rules.ROWS, Rules.VISIBLE = 6, 13, 12
-Rules.GARBAGE = 6                -- cell value of nuisance puyos (colors are 1..5)
+Rules.GARBAGE = 6 -- cell value of nuisance puyos (colors are 1..5)
 
 -- Every key here can be overridden by a mode (mode.rules = { ... }).
 Rules.DEFAULTS = {
-  colors = 4,                    -- colors in play (3..5)
-  pop = 4,                       -- group size that pops (2..8)
-  spawn_x = 3,                   -- column where pairs appear
-  death_x = 3, death_y = 12,     -- the "X": filled at spawn time = you lose
-  target_points = 70,            -- score points per nuisance puyo
-  max_drop = 30,                 -- nuisance falling at once (5 rows)
+  colors = 4, -- colors in play (3..5)
+  pop = 4, -- group size that pops (2..8)
+  spawn_x = 3, -- column where pairs appear
+  death_x = 3,
+  death_y = 12, -- the "X": filled at spawn time = you lose
+  target_points = 70, -- score points per nuisance puyo
+  max_drop = 30, -- nuisance falling at once (5 rows)
   all_clear_garbage = 30,
   all_clear_score = 2100,
-  margin_time = 96 * 60,         -- frames until nuisance starts getting cheaper
-  margin_step = 16 * 60,         -- every step: target points * 3/4
-  das = 9, arr = 2,              -- auto-shift delay / repeat (frames)
-  gravity = 28,                  -- sub-rows per frame (1024 = one row)
+  margin_time = 96 * 60, -- frames until nuisance starts getting cheaper
+  margin_step = 16 * 60, -- every step: target points * 3/4
+  das = 9,
+  arr = 2, -- auto-shift delay / repeat (frames)
+  gravity = 28, -- sub-rows per frame (1024 = one row)
   soft_drop = 512,
   lock_delay = 30,
   lock_resets = 10,
   floor_kicks = 8,
-  quick_turn = 18,               -- double-tap window for the 180 degree flip
-  pop_time = 42,                 -- frames a popping group flashes
-  fall_accel = 46,               -- falling animation (sub-rows / frame^2)
+  quick_turn = 18, -- double-tap window for the 180 degree flip
+  pop_time = 42, -- frames a popping group flashes
+  fall_accel = 46, -- falling animation (sub-rows / frame^2)
   fall_max = 922,
   spawn_delay = 8,
-  ready_time = 150,              -- READY? GO! countdown
-  over_time = 220,               -- pause after a round
-  first_to = 2,                  -- round wins needed
-  hard_drop = true,              -- allow hard drop at all
-  chain_power = { 0, 8, 16, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 480, 512 },
+  ready_time = 150, -- READY? GO! countdown
+  over_time = 220, -- pause after a round
+  first_to = 2, -- round wins needed
+  hard_drop = true, -- allow hard drop at all
+  chain_power = {
+    0,
+    8,
+    16,
+    32,
+    64,
+    96,
+    128,
+    160,
+    192,
+    224,
+    256,
+    288,
+    320,
+    352,
+    384,
+    416,
+    448,
+    480,
+    512,
+  },
   color_bonus = { 0, 3, 6, 12, 24 },
   group_bonus = { [4] = 0, [5] = 2, [6] = 3, [7] = 4, [8] = 5, [9] = 6, [10] = 7, [11] = 10 },
 }
@@ -48,14 +70,20 @@ Rules.DEFAULTS = {
 local function copy(v)
   if type(v) ~= "table" then return v end
   local t = {}
-  for k, x in pairs(v) do t[k] = copy(x) end
+  for k, x in pairs(v) do
+    t[k] = copy(x)
+  end
   return t
 end
 Rules.copy = copy
 
 local function int(v, lo, hi)
   v = math.tointeger(math.floor(v)) or lo
-  if v < lo then v = lo elseif v > hi then v = hi end
+  if v < lo then
+    v = lo
+  elseif v > hi then
+    v = hi
+  end
   return v
 end
 
@@ -78,8 +106,20 @@ function Rules.make(...)
   R.death_x, R.death_y = int(R.death_x, 1, 6), int(R.death_y, 1, 12)
   R.target_points = int(R.target_points, 1, 100000)
   R.max_drop = int(R.max_drop, 1, 78)
-  for _, k in ipairs { "all_clear_garbage", "all_clear_score", "margin_time", "margin_step", "das", "lock_delay",
-                       "lock_resets", "floor_kicks", "quick_turn", "spawn_delay", "ready_time", "over_time" } do
+  for _, k in ipairs {
+    "all_clear_garbage",
+    "all_clear_score",
+    "margin_time",
+    "margin_step",
+    "das",
+    "lock_delay",
+    "lock_resets",
+    "floor_kicks",
+    "quick_turn",
+    "spawn_delay",
+    "ready_time",
+    "over_time",
+  } do
     R[k] = int(R[k], 0, 1000000)
   end
   R.arr = int(R.arr, 1, 60)
@@ -104,7 +144,9 @@ function Rules.make(...)
   end
   R.gb = gb
   local cb = {}
-  for n = 1, 5 do cb[n] = int(R.color_bonus[n] or R.color_bonus[#R.color_bonus] or 0, 0, 999) end
+  for n = 1, 5 do
+    cb[n] = int(R.color_bonus[n] or R.color_bonus[#R.color_bonus] or 0, 0, 999)
+  end
   R.cb = cb
   return R
 end
@@ -112,8 +154,14 @@ end
 -- score of one chain link: 10 * cleared * clamp(CP + CB + GB, 1, 999)
 function Rules.link_score(R, chain, puyos, ncolors, sizes)
   local bonus = R.cp[math.min(chain, 100)] + R.cb[math.min(ncolors, 5)]
-  for i = 1, #sizes do bonus = bonus + R.gb[math.min(sizes[i], 78)] end
-  if bonus < 1 then bonus = 1 elseif bonus > 999 then bonus = 999 end
+  for i = 1, #sizes do
+    bonus = bonus + R.gb[math.min(sizes[i], 78)]
+  end
+  if bonus < 1 then
+    bonus = 1
+  elseif bonus > 999 then
+    bonus = 999
+  end
   return 10 * puyos * bonus, bonus
 end
 
@@ -122,7 +170,9 @@ function Rules.target_points(R, frames)
   local tp = R.target_points
   if frames < R.margin_time then return tp end
   local steps = (frames - R.margin_time) // R.margin_step + 1
-  for _ = 1, math.min(steps, 64) do tp = math.max(1, tp * 3 // 4) end
+  for _ = 1, math.min(steps, 64) do
+    tp = math.max(1, tp * 3 // 4)
+  end
   return tp
 end
 

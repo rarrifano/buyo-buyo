@@ -35,13 +35,13 @@ Board.NEIGH = NEIGH
 
 function Board.new()
   local c = {}
-  for i = 1, N do c[i] = 0 end
+  for i = 1, N do
+    c[i] = 0
+  end
   return setmetatable({ c = c }, Board)
 end
 
-function Board:clone()
-  return setmetatable({ c = table.move(self.c, 1, N, 1, {}) }, Board)
-end
+function Board:clone() return setmetatable({ c = table.move(self.c, 1, N, 1, {}) }, Board) end
 
 function Board:get(x, y)
   if x < 1 or x > W or y < 1 or y > H then return nil end
@@ -97,7 +97,9 @@ function Board:gravity(moves)
 end
 
 local mark, stamp = {}, 0
-for i = 1, N do mark[i] = 0 end
+for i = 1, N do
+  mark[i] = 0
+end
 
 -- Groups of >= `pop` same-colored puyos inside the visible rows.
 -- Returns nil or a list of { color = c, cells = { idx, ... } }.

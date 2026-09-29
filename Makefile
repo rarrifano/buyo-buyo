@@ -44,10 +44,17 @@ endif
 TARGET := $(BUILD)/buyo-buyo$(EXE)
 
 # ---- dependencies -----------------------------------------------------
+# Targets that never compile anything (formatting/lint-lua/housekeeping)
+# shouldn't require SDL2 to be installed.
+NO_SDL_GOALS   := format format-check lint-lua install-hooks clean distclean
+NEEDS_SDL      := $(if $(MAKECMDGOALS),$(filter-out $(NO_SDL_GOALS),$(MAKECMDGOALS)),1)
+
 SDL_CFLAGS := $(shell $(PKG_CONFIG) --cflags sdl2 2>/dev/null)
 SDL_LIBS   := $(shell $(PKG_CONFIG) --libs sdl2 2>/dev/null)
 ifeq ($(SDL_LIBS),)
-  $(error SDL2 development files not found via $(PKG_CONFIG) (Fedora: sdl2-compat-devel, Debian/Ubuntu: libsdl2-dev, macOS: brew install sdl2 pkg-config, MSYS2: mingw-w64-x86_64-SDL2))
+  ifneq ($(strip $(NEEDS_SDL)),)
+    $(error SDL2 development files not found via $(PKG_CONFIG) (Fedora: sdl2-compat-devel, Debian/Ubuntu: libsdl2-dev, macOS: brew install sdl2 pkg-config, MSYS2: mingw-w64-x86_64-SDL2))
+  endif
 endif
 
 ifeq ($(LUA),system)
@@ -120,8 +127,15 @@ dist: $(TARGET)
 	cd dist && rm -f $(DISTNAME).zip && (zip -qr $(DISTNAME).zip $(DISTNAME) 2>/dev/null || tar czf $(DISTNAME).tar.gz $(DISTNAME))
 	@echo "packaged: $$(ls -1 dist/$(DISTNAME).* | head -1)"
 
+# Cross-compile from Linux. Fedora ships x86_64-w64-mingw32-pkg-config; on
+# Debian/Ubuntu (and with the official SDL2 mingw tarball) fall back to plain
+# pkg-config pointed at the mingw sysroot, with --define-prefix so .pc files
+# that were built for another prefix still resolve.
+MINGW_PKG_CONFIG := $(or $(shell command -v x86_64-w64-mingw32-pkg-config 2>/dev/null),\
+  PKG_CONFIG_LIBDIR=/usr/x86_64-w64-mingw32/lib/pkgconfig pkg-config --define-prefix)
+
 windows:
-	$(MAKE) BUILD=build-windows CC=x86_64-w64-mingw32-gcc PKG_CONFIG=x86_64-w64-mingw32-pkg-config dist
+	$(MAKE) BUILD=build-windows CC=x86_64-w64-mingw32-gcc PKG_CONFIG="$(MINGW_PKG_CONFIG)" dist
 
 clean:
 	rm -rf $(BUILD) build-debug build-windows

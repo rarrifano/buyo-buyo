@@ -20,8 +20,13 @@ function Jukebox.play(id, fallback)
   if def.file then
     local p, err = Content.path(def, def.file)
     local ok
-    if p then ok, err = audio.music_file(p, { loop = def.loop ~= false, loop_start = tonumber(def.loop_start) or 0,
-                                              volume = tonumber(def.volume) or 1 }) end
+    if p then
+      ok, err = audio.music_file(p, {
+        loop = def.loop ~= false,
+        loop_start = tonumber(def.loop_start) or 0,
+        volume = tonumber(def.volume) or 1,
+      })
+    end
     if not ok then Content.report("music", def.id, tostring(err)) end
   else
     audio.music(def)

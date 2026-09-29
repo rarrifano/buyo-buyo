@@ -36,8 +36,12 @@ typedef SOCKET sock_t;
 #define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
 #endif
 static bool wsa_ready;
-static int last_err(void) { return WSAGetLastError(); }
-static bool err_is_transient(int e) { return e == WSAEWOULDBLOCK || e == WSAECONNRESET || e == WSAEMSGSIZE; }
+static int last_err(void) {
+    return WSAGetLastError();
+}
+static bool err_is_transient(int e) {
+    return e == WSAEWOULDBLOCK || e == WSAECONNRESET || e == WSAEMSGSIZE;
+}
 #else
 #include <arpa/inet.h>
 #include <errno.h>
@@ -50,8 +54,12 @@ static bool err_is_transient(int e) { return e == WSAEWOULDBLOCK || e == WSAECON
 typedef int sock_t;
 #define SOCK_BAD (-1)
 #define sock_close close
-static int last_err(void) { return errno; }
-static bool err_is_transient(int e) { return e == EAGAIN || e == EWOULDBLOCK || e == ECONNREFUSED || e == EINTR; }
+static int last_err(void) {
+    return errno;
+}
+static bool err_is_transient(int e) {
+    return e == EAGAIN || e == EWOULDBLOCK || e == ECONNREFUSED || e == EINTR;
+}
 #endif
 
 #define SOCKET_MT "buyo.Socket"
@@ -62,8 +70,7 @@ typedef struct {
     int port;
 } Sock;
 
-static void net_startup(void)
-{
+static void net_startup(void) {
 #ifdef _WIN32
     if (!wsa_ready) {
         WSADATA wd;
@@ -72,16 +79,15 @@ static void net_startup(void)
 #endif
 }
 
-void net_shutdown(void)
-{
+void net_shutdown(void) {
 #ifdef _WIN32
-    if (wsa_ready) WSACleanup();
+    if (wsa_ready)
+        WSACleanup();
     wsa_ready = false;
 #endif
 }
 
-static bool set_nonblocking(sock_t fd)
-{
+static bool set_nonblocking(sock_t fd) {
 #ifdef _WIN32
     u_long on = 1;
     return ioctlsocket(fd, FIONBIO, &on) == 0;
@@ -91,8 +97,7 @@ static bool set_nonblocking(sock_t fd)
 #endif
 }
 
-static bool parse_ipv4(const char *ip, int port, struct sockaddr_in *out)
-{
+static bool parse_ipv4(const char *ip, int port, struct sockaddr_in *out) {
     memset(out, 0, sizeof *out);
     out->sin_family = AF_INET;
     out->sin_port = htons((unsigned short)port);
@@ -103,16 +108,15 @@ static bool parse_ipv4(const char *ip, int port, struct sockaddr_in *out)
 /* sockets                                                             */
 /* ------------------------------------------------------------------ */
 
-static Sock *check_sock(lua_State *L)
-{
+static Sock *check_sock(lua_State *L) {
     Sock *s = (Sock *)luaL_checkudata(L, 1, SOCKET_MT);
-    if (s->fd == SOCK_BAD) luaL_error(L, "socket is closed");
+    if (s->fd == SOCK_BAD)
+        luaL_error(L, "socket is closed");
     return s;
 }
 
 /* net.udp([port]) -> Socket | nil, err */
-static int l_udp(lua_State *L)
-{
+static int l_udp(lua_State *L) {
     net_startup();
     int port = (int)luaL_optinteger(L, 1, 0);
     sock_t fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -153,8 +157,7 @@ static int l_udp(lua_State *L)
     return 1;
 }
 
-static int l_sock_send(lua_State *L)
-{
+static int l_sock_send(lua_State *L) {
     Sock *s = check_sock(L);
     const char *ip = luaL_checkstring(L, 2);
     int port = (int)luaL_checkinteger(L, 3);
@@ -176,8 +179,7 @@ static int l_sock_send(lua_State *L)
     return 1;
 }
 
-static int l_sock_recv(lua_State *L)
-{
+static int l_sock_recv(lua_State *L) {
     Sock *s = check_sock(L);
     char buf[2048];
     for (;;) {
@@ -188,9 +190,11 @@ static int l_sock_recv(lua_State *L)
             int e = last_err();
             if (err_is_transient(e)) {
 #ifdef _WIN32
-                if (e == WSAECONNRESET || e == WSAEMSGSIZE) continue;
+                if (e == WSAECONNRESET || e == WSAEMSGSIZE)
+                    continue;
 #else
-                if (e == ECONNREFUSED || e == EINTR) continue;
+                if (e == ECONNREFUSED || e == EINTR)
+                    continue;
 #endif
                 return 0; /* nothing pending */
             }
@@ -205,16 +209,15 @@ static int l_sock_recv(lua_State *L)
     }
 }
 
-static int l_sock_port(lua_State *L)
-{
+static int l_sock_port(lua_State *L) {
     lua_pushinteger(L, check_sock(L)->port);
     return 1;
 }
 
-static int l_sock_close(lua_State *L)
-{
+static int l_sock_close(lua_State *L) {
     Sock *s = (Sock *)luaL_checkudata(L, 1, SOCKET_MT);
-    if (s->fd != SOCK_BAD) sock_close(s->fd);
+    if (s->fd != SOCK_BAD)
+        sock_close(s->fd);
     s->fd = SOCK_BAD;
     return 0;
 }
@@ -234,20 +237,20 @@ typedef struct {
     Resolve *r;
 } ResolveUD;
 
-static void resolve_release(Resolve *r)
-{
-    if (SDL_AtomicAdd(&r->refs, -1) == 1) free(r);
+static void resolve_release(Resolve *r) {
+    if (SDL_AtomicAdd(&r->refs, -1) == 1)
+        free(r);
 }
 
-static int resolve_worker(void *p)
-{
+static int resolve_worker(void *p) {
     Resolve *r = (Resolve *)p;
     struct addrinfo hints, *res = NULL;
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
     if (getaddrinfo(r->host, NULL, &hints, &res) == 0 && res) {
-        inet_ntop(AF_INET, &((struct sockaddr_in *)res->ai_addr)->sin_addr, r->result, sizeof r->result);
+        inet_ntop(AF_INET, &((struct sockaddr_in *)res->ai_addr)->sin_addr, r->result,
+                  sizeof r->result);
         freeaddrinfo(res);
         SDL_AtomicSet(&r->state, 1);
     } else {
@@ -258,12 +261,12 @@ static int resolve_worker(void *p)
     return 0;
 }
 
-static int l_resolve(lua_State *L)
-{
+static int l_resolve(lua_State *L) {
     net_startup();
     const char *host = luaL_checkstring(L, 1);
     Resolve *r = (Resolve *)calloc(1, sizeof *r);
-    if (!r) return luaL_error(L, "out of memory");
+    if (!r)
+        return luaL_error(L, "out of memory");
     snprintf(r->host, sizeof r->host, "%s", host);
     SDL_AtomicSet(&r->refs, 2);
     ResolveUD *ud = (ResolveUD *)lua_newuserdatauv(L, sizeof *ud, 0);
@@ -280,11 +283,11 @@ static int l_resolve(lua_State *L)
     return 1;
 }
 
-static int l_resolve_result(lua_State *L)
-{
+static int l_resolve_result(lua_State *L) {
     ResolveUD *ud = (ResolveUD *)luaL_checkudata(L, 1, RESOLVE_MT);
     int st = SDL_AtomicGet(&ud->r->state);
-    if (st == 0) return 0;
+    if (st == 0)
+        return 0;
     if (st == 1) {
         lua_pushstring(L, ud->r->result);
         return 1;
@@ -294,39 +297,39 @@ static int l_resolve_result(lua_State *L)
     return 2;
 }
 
-static int l_resolve_gc(lua_State *L)
-{
+static int l_resolve_gc(lua_State *L) {
     ResolveUD *ud = (ResolveUD *)luaL_checkudata(L, 1, RESOLVE_MT);
-    if (ud->r) resolve_release(ud->r);
+    if (ud->r)
+        resolve_release(ud->r);
     ud->r = NULL;
     return 0;
 }
 
 /* primary LAN address: "connect" a UDP socket (no packet is sent) and ask
  * the OS which local address it would use */
-static int l_local_ip(lua_State *L)
-{
+static int l_local_ip(lua_State *L) {
     net_startup();
     sock_t fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (fd == SOCK_BAD) return 0;
+    if (fd == SOCK_BAD)
+        return 0;
     struct sockaddr_in to, me;
     parse_ipv4("8.8.8.8", 53, &to);
     socklen_t mlen = sizeof me;
     int ok = connect(fd, (struct sockaddr *)&to, sizeof to) == 0 &&
              getsockname(fd, (struct sockaddr *)&me, &mlen) == 0;
     sock_close(fd);
-    if (!ok) return 0;
+    if (!ok)
+        return 0;
     char ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &me.sin_addr, ip, sizeof ip);
     lua_pushstring(L, ip);
     return 1;
 }
 
-int luaopen_net(lua_State *L)
-{
+int luaopen_net(lua_State *L) {
     static const luaL_Reg sock_methods[] = {
-        { "send", l_sock_send }, { "recv", l_sock_recv }, { "port", l_sock_port },
-        { "close", l_sock_close }, { NULL, NULL },
+        {"send", l_sock_send},   {"recv", l_sock_recv}, {"port", l_sock_port},
+        {"close", l_sock_close}, {NULL, NULL},
     };
     luaL_newmetatable(L, SOCKET_MT);
     lua_pushcfunction(L, l_sock_close);
@@ -335,7 +338,7 @@ int luaopen_net(lua_State *L)
     lua_setfield(L, -2, "__index");
     lua_pop(L, 1);
 
-    static const luaL_Reg res_methods[] = { { "result", l_resolve_result }, { NULL, NULL } };
+    static const luaL_Reg res_methods[] = {{"result", l_resolve_result}, {NULL, NULL}};
     luaL_newmetatable(L, RESOLVE_MT);
     lua_pushcfunction(L, l_resolve_gc);
     lua_setfield(L, -2, "__gc");
@@ -344,7 +347,10 @@ int luaopen_net(lua_State *L)
     lua_pop(L, 1);
 
     static const luaL_Reg fns[] = {
-        { "udp", l_udp }, { "resolve", l_resolve }, { "local_ip", l_local_ip }, { NULL, NULL },
+        {"udp", l_udp},
+        {"resolve", l_resolve},
+        {"local_ip", l_local_ip},
+        {NULL, NULL},
     };
     luaL_newlib(L, fns);
     return 1;

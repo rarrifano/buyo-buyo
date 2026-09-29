@@ -43,7 +43,11 @@ end
 function UI.rainbow(s, x, y, scale, t, align, alpha)
   alpha = alpha or 255
   local w = #s * 8 * scale
-  if align == "center" then x = x - w / 2 elseif align == "right" then x = x - w end
+  if align == "center" then
+    x = x - w / 2
+  elseif align == "right" then
+    x = x - w
+  end
   local o = math.max(1, math.min(scale, 2 + scale * 0.5))
   for pass = 1, 2 do
     for k = 1, #s do
@@ -66,6 +70,48 @@ function UI.rainbow(s, x, y, scale, t, align, alpha)
       end
     end
   end
+end
+
+-- split text into lines of at most `width` characters, breaking at spaces
+function UI.wrap(text, width)
+  local lines, line = {}, ""
+  for word in tostring(text):gmatch "%S+" do
+    while #word > width do
+      if #line > 0 then
+        lines[#lines + 1] = line
+        line = ""
+      end
+      lines[#lines + 1] = word:sub(1, width)
+      word = word:sub(width + 1)
+    end
+    if #line == 0 then
+      line = word
+    elseif #line + 1 + #word <= width then
+      line = line .. " " .. word
+    else
+      lines[#lines + 1] = line
+      line = word
+    end
+  end
+  if #line > 0 then lines[#lines + 1] = line end
+  return lines
+end
+
+-- draw wrapped text; returns the y after the last line
+function UI.paragraph(text, x, y, width_chars, scale, align, col, max_lines)
+  for k, l in ipairs(UI.wrap(text, width_chars)) do
+    if max_lines and k > max_lines then break end
+    UI.text(l, x, y, scale, align or "left", col)
+    y = y + 10 * scale
+  end
+  return y
+end
+
+-- keep the end of a long string (e.g. a path): "...tail"
+function UI.tail(s, n)
+  s = tostring(s)
+  if #s <= n then return s end
+  return "..." .. s:sub(-(n - 3))
 end
 
 local panels = {}

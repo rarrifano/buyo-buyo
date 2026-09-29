@@ -11,22 +11,37 @@ Controls.BUTTONS = BUTTONS
 Controls.KEYS = {
   -- VS CPU: one human, every sensible key works
   solo = {
-    left = { "Left", "A" }, right = { "Right", "D" }, up = { "Up", "W" }, down = { "Down", "S" },
-    rot_l = { "Z", "J" }, rot_r = { "X", "K" },
+    left = { "Left", "A" },
+    right = { "Right", "D" },
+    up = { "Up", "W" },
+    down = { "Down", "S" },
+    rot_l = { "Z", "J" },
+    rot_r = { "X", "K" },
   },
   -- 2P, left side of the keyboard
   p1 = {
-    left = { "A" }, right = { "D" }, up = { "W" }, down = { "S" },
-    rot_l = { "F" }, rot_r = { "G" },
+    left = { "A" },
+    right = { "D" },
+    up = { "W" },
+    down = { "S" },
+    rot_l = { "F" },
+    rot_r = { "G" },
   },
   -- 2P, right side of the keyboard
   p2 = {
-    left = { "Left" }, right = { "Right" }, up = { "Up" }, down = { "Down" },
-    rot_l = { "," }, rot_r = { "." },
+    left = { "Left" },
+    right = { "Right" },
+    up = { "Up" },
+    down = { "Down" },
+    rot_l = { "," },
+    rot_r = { "." },
   },
   -- menus (and pause)
   menu = {
-    left = { "Left", "A" }, right = { "Right", "D" }, up = { "Up", "W" }, down = { "Down", "S" },
+    left = { "Left", "A" },
+    right = { "Right", "D" },
+    up = { "Up", "W" },
+    down = { "Down", "S" },
     confirm = { "Return", "Space", "Z", "J", "Keypad Enter" },
     back = { "Escape", "Backspace", "X", "K" },
     start = { "Escape", "Return", "P" },
@@ -35,9 +50,15 @@ Controls.KEYS = {
 
 -- SDL game controller buttons (south = a, east = b, west = x, north = y)
 Controls.PAD = {
-  left = { "dpleft" }, right = { "dpright" }, up = { "dpup" }, down = { "dpdown" },
-  rot_l = { "a", "x" }, rot_r = { "b", "y" },
-  start = { "start" }, confirm = { "a", "start" }, back = { "b", "back" },
+  left = { "dpleft" },
+  right = { "dpright" },
+  up = { "dpup" },
+  down = { "dpdown" },
+  rot_l = { "a", "x" },
+  rot_r = { "b", "y" },
+  start = { "start" },
+  confirm = { "a", "start" },
+  back = { "b", "back" },
 }
 
 local Ctl = {}
@@ -47,7 +68,10 @@ local all = {}
 
 -- profile: key profile name; pads: list of pad slots, "all", or nil
 function Controls.new(profile, pads)
-  local c = setmetatable({ held = {}, pressed = {}, released = {}, frames = {}, keys = {}, pads = pads }, Ctl)
+  local c = setmetatable(
+    { held = {}, pressed = {}, released = {}, frames = {}, keys = {}, pads = pads },
+    Ctl
+  )
   for b, names in pairs(Controls.KEYS[profile] or {}) do
     local list = {}
     for _, n in ipairs(names) do
@@ -80,17 +104,26 @@ function Ctl:poll()
     local ks = self.keys[b]
     if ks then
       for i = 1, #ks do
-        if input.key(ks[i]) then down = true break end
+        if input.key(ks[i]) then
+          down = true
+          break
+        end
       end
     end
     if not down and self.pads then
       if self.pads == "all" then
         for slot = 1, input.MAX_PADS do
-          if pad_down(slot, b) then down = true break end
+          if pad_down(slot, b) then
+            down = true
+            break
+          end
         end
       else
         for _, slot in ipairs(self.pads) do
-          if pad_down(slot, b) then down = true break end
+          if pad_down(slot, b) then
+            down = true
+            break
+          end
         end
       end
     end
@@ -121,25 +154,34 @@ function Controls.unregister(c)
   end
 end
 
-function Controls.init()
-  Controls.menu = Controls.register("menu", "all")
-end
+function Controls.init() Controls.menu = Controls.register("menu", "all") end
 
 function Controls.update()
-  for _, c in ipairs(all) do c:poll() end
+  for _, c in ipairs(all) do
+    c:poll()
+  end
 end
 
 -- human readable key help
 Controls.HELP = {
-  { "VS CPU", {
-    "Move        \001 \002  or  A D",
-    "Soft drop   \004  or  S",
-    "Hard drop   \003  or  W  (if enabled)",
-    "Rotate      Z X  or  J K",
-  } },
+  {
+    "VS CPU",
+    {
+      "Move        \001 \002  or  A D",
+      "Soft drop   \004  or  S",
+      "Hard drop   \003  or  W  (if enabled)",
+      "Rotate      Z X  or  J K",
+    },
+  },
   { "2P - Player 1", { "Move A D   Drop S   Hard drop W", "Rotate F G" } },
   { "2P - Player 2", { "Move \001 \002   Drop \004   Hard drop \003", "Rotate , ." } },
-  { "Gamepad", { "D-pad/stick move, A/X rotate left, B/Y rotate right", "Start pauses. Pad 1 = P1, pad 2 = P2" } },
+  {
+    "Gamepad",
+    {
+      "D-pad/stick move, A/X rotate left, B/Y rotate right",
+      "Start pauses. Pad 1 = P1, pad 2 = P2",
+    },
+  },
   { "General", { "Esc/Enter pause    F11 or Alt+Enter fullscreen" } },
 }
 

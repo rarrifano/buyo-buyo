@@ -45,8 +45,10 @@ TARGET := $(BUILD)/buyo-buyo$(EXE)
 
 # ---- dependencies -----------------------------------------------------
 # Targets that never compile anything (formatting/lint-lua/housekeeping)
-# shouldn't require SDL2 to be installed.
-NO_SDL_GOALS   := format format-check lint-lua install-hooks clean distclean
+# shouldn't require SDL2 to be installed. `windows` re-invokes $(MAKE) with
+# a cross PKG_CONFIG for the actual build, so it doesn't need the host's
+# native SDL2 either.
+NO_SDL_GOALS   := format format-check lint-lua install-hooks clean distclean windows
 NEEDS_SDL      := $(if $(MAKECMDGOALS),$(filter-out $(NO_SDL_GOALS),$(MAKECMDGOALS)),1)
 
 SDL_CFLAGS := $(shell $(PKG_CONFIG) --cflags sdl2 2>/dev/null)
@@ -114,7 +116,7 @@ test: $(TARGET)
 	./scripts/netplay-test.sh ./$(TARGET)
 
 # ---- packaging --------------------------------------------------------
-VERSION  := $(shell sed -n 's/^#define BUYO_VERSION "\(.*\)"/\1/p' src/engine.h)
+VERSION  := $(shell grep -m1 'define BUYO_VERSION' src/engine.h | cut -d '"' -f2)
 DISTNAME := buyo-buyo-$(VERSION)-$(TARGET_OS)
 DISTDIR  := dist/$(DISTNAME)
 

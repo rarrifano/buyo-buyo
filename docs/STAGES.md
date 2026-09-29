@@ -7,6 +7,15 @@ you like - they never affect the game or online play.
 Examples: `content/stages/checkers/` (images only, no code) and
 `content/stages/default/` (all code, no images).
 
+## Without code
+
+No `stage.lua` needed: a folder with `background.png` is a stage (the
+picture is stretched to 1280 x 720). Pictures with `tile` in their name
+repeat across the screen and drift (`scroll_x`/`scroll_y` in `info.txt`),
+any other picture is drawn on top at its own size (make it 1280 x 720 with
+transparency for foreground decorations), and a `music.ogg` in the folder
+plays during matches. See [the no-code guide](GETTING_STARTED.md#2-no-code-needed-just-drop-in-files).
+
 ## Anatomy
 
 The screen is **1280 x 720**. A stage is drawn back to front:

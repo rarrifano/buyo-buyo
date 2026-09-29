@@ -24,6 +24,16 @@ function Skin.sheet(def)
     local img, e = gfx.image_load(p)
     if not img then error(e, 0) end
     local w, h = img:size()
+    if def.auto_cell then
+      -- no skin.lua: the sheet is 16 cells wide, so its width gives the cell
+      -- size; small cells are pixel art and stay crisp
+      cell = w // 16
+      if cell < 8 then
+        error(string.format("%s is too small (%dx%d) for a 16-column sheet", def.sheet, w, h), 0)
+      end
+      def.cell = cell
+      def.filter = def.filter or (cell <= 32 and "nearest" or "linear")
+    end
     if w < 16 * cell or h < 6 * cell then
       error(
         string.format(

@@ -62,6 +62,8 @@ local function parse_args()
       opts.char2 = val()
     elseif k == "--stage" then
       opts.stage = val()
+    elseif k == "--skin" then
+      opts.skin = val()
     elseif k == "--level" then
       opts.level = tonumber(val())
     elseif k == "--level2" then
@@ -144,7 +146,13 @@ local function check_content()
       end
     end
   end
-  for _, def in ipairs(Content.list "music") do
+  -- every song, hidden ones too (e.g. the music.ogg of a no-code stage)
+  local songs = {}
+  for _, def in pairs(Content.items.music) do
+    songs[#songs + 1] = def
+  end
+  table.sort(songs, function(a, b) return a.id < b.id end)
+  for _, def in ipairs(songs) do
     if def.file then
       local p, err = Content.path(def, def.file)
       local ok
@@ -243,6 +251,7 @@ function App.load()
   if not sys.headless() then Settings.load() end -- tests always use defaults
   if opts.net_port then Settings.data.net_port = opts.net_port end
   if opts.first_to then Settings.data.first_to = opts.first_to end
+  if opts.skin then Settings.data.skin = opts.skin end
   Settings.apply()
   Content.extra_roots = opts.mods
   Content.skip_user = opts.no_user_mods -- hermetic tests: built-in + --mods only
@@ -253,7 +262,8 @@ function App.load()
   Controls.init()
 
   if opts.test then
-    local ok = require "tests.scenes_test"() and opts.test_ok
+    local ok = require "tests.content_test"() and opts.test_ok
+    ok = require "tests.scenes_test"() and ok
     os.exit(ok and 0 or 1, true)
   end
 

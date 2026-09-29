@@ -34,9 +34,12 @@ stages, skins, game modes and music for.
 
 ## Make your own stuff
 
-Everything you see and hear is **content**: a folder with a small Lua file
-and your images/sounds. No compiling, no engine changes - drop it in your
-mods folder and press **F5**.
+Everything you see and hear is **content**: a folder with your images and
+sounds - **no programming needed** (`portrait.png` makes a character,
+`background.png` a stage, `puyos.png` a skin, any `.ogg` a song, and a
+plain-text `info.txt` sets names, colors and rules). Add a small Lua file
+when you want more: painted-by-code art, animated stages, rule hooks. No
+compiling, no engine changes - drop it in your mods folder and press **F5**.
 
 | | | |
 |---|---|---|

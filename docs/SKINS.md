@@ -5,6 +5,14 @@ A skin changes how the puyos look: a folder `skins/<id>/` with a
 **SETTINGS -> PUYO SKIN** ("BY CHARACTER" uses each character's preferred
 skin).
 
+## Without code
+
+A folder with just `puyos.png` is a skin - no `skin.lua` needed. The cell
+size is worked out from the sheet width (width / 16), and small cells (32 px
+or less) are drawn with crisp pixel-art filtering automatically. Optional
+`info.txt` settings: `name`, `author`, `cell`, `filter`, `faces`,
+`color1` ... `color6`. See [the no-code guide](GETTING_STARTED.md#2-no-code-needed-just-drop-in-files).
+
 ## The fastest way: paint over a template
 
 1. **CONTENT -> SKINS**, select *Classic*, press **Z** ->

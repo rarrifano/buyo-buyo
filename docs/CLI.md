@@ -38,6 +38,7 @@ buyo-buyo [engine options] [-- game options]
 | `--game-mode ID` | the content mode (default: your last pick, or `tsu`) |
 | `--char1 ID`, `--char2 ID` | characters |
 | `--stage ID` | stage (default: player 2's home stage) |
+| `--skin ID` | puyo skin for both players (default: your setting) |
 | `--level N`, `--level2 N` | CPU strength 1-4 (EASY, NORMAL, HARD, MANIAC) |
 | `--first-to N` | rounds to win |
 | `--seed N` | fixed random seed (same seed = same pieces) |

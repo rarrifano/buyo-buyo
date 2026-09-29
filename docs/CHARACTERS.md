@@ -6,8 +6,18 @@ a theme, and a personality when the CPU plays them. They do **not** change
 the rules (that's what [modes](MODES.md) are for), so every character is
 fair to play online against anyone.
 
-- Minimal example: [GETTING_STARTED.md](GETTING_STARTED.md#2-your-first-character-step-by-step)
+- Minimal example: [GETTING_STARTED.md](GETTING_STARTED.md#3-your-first-character-with-code-step-by-step)
 - Full examples: `content/chars/buyo/char.lua`, `content/chars/blu/char.lua`
+
+## Without code
+
+No `char.lua` needed: a folder with `portrait.png` is a character. Add
+mood pictures (`idle.png`, `happy.png`, `worried.png`, `hurt.png`,
+`win.png`, `lose.png`), voices (`chain1.ogg`, `chain2.ogg`, ... one per
+chain link, and `start`, `attack`, `damage`, `all_clear`, `win`, `lose`
+as `.ogg` or `.wav`) and an `info.txt` for the name, color, home stage,
+theme and CPU style. Everything below that a file can express works the
+same way - see [the no-code guide](GETTING_STARTED.md#2-no-code-needed-just-drop-in-files).
 
 ## All fields
 

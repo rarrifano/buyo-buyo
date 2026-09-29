@@ -104,7 +104,9 @@ function Content.path(def, name)
     name:find("..", 1, true)
     or name:match "^[/\\]"
     or name:match "^%a:"
-    or not name:match "^[%w_%-%./ ]+$"
+    -- anything else a file can be called on every OS is fine, e.g. "My Song
+    -- (remix).ogg" or accented names: no control chars, \ : * ? " < > |
+    or name:find '[%c\\:*?"<>|]'
   then
     return nil, "invalid file name '" .. name .. "' (stay inside the item folder)"
   end
@@ -275,6 +277,7 @@ function VALIDATE.skins(d)
   if type(d.sheet) ~= "string" and type(d.paint) ~= "function" then
     return 'a skin needs either sheet = "file.png" or a paint(img, cell, api) function'
   end
+  if d.auto_cell then return nil end -- measured from the sheet width (view/skin.lua)
   d.cell = math.tointeger(d.cell) or 64
   if d.cell < 8 or d.cell > 256 then return "cell must be between 8 and 256" end
 end
@@ -311,6 +314,17 @@ end
 -- loading
 ------------------------------------------------------------------------
 
+-- validate a finished definition and put it in the registry
+local function register(kind, id, def)
+  def.name = type(def.name) == "string" and def.name or id
+  def.author = type(def.author) == "string" and def.author or "unknown"
+  local verr = VALIDATE[kind](def)
+  if verr then return Content.report(kind, id, verr) end
+  local prev = Content.items[kind][id]
+  if prev then def.overrides = prev.root end
+  Content.items[kind][id] = def
+end
+
 local function load_item(kind, id, folder, file, root)
   local src, err = sys.read_file(file)
   if not src then return Content.report(kind, id, err) end
@@ -327,14 +341,255 @@ local function load_item(kind, id, folder, file, root)
   for k, v in pairs(result) do
     if def[k] == nil then def[k] = v end
   end
-  def.name = type(def.name) == "string" and def.name or id
-  def.author = type(def.author) == "string" and def.author or "unknown"
   def.hash = Content.hash_string(src)
-  local verr = VALIDATE[kind](def)
-  if verr then return Content.report(kind, id, verr) end
-  local prev = Content.items[kind][id]
-  if prev then def.overrides = prev.root end
-  Content.items[kind][id] = def
+  register(kind, id, def)
+end
+
+------------------------------------------------------------------------
+-- content without code: a folder of images / sounds + an optional info.txt
+------------------------------------------------------------------------
+
+local IMAGE_EXT = { png = true, jpg = true, jpeg = true, bmp = true, tga = true }
+local AUDIO_EXT = { ogg = true, wav = true }
+
+local function ext_of(name) return (name:match "%.(%w+)$" or ""):lower() end
+local function stem_of(name) return (name:gsub("%.%w+$", "")):lower() end
+
+-- "tomato_king" -> "Tomato King"
+local function pretty(id)
+  local s = id:gsub("[_%-]+", " ")
+  return (s:gsub("(%a)([%w']*)", function(a, b) return a:upper() .. b end))
+end
+
+-- info.txt: one "key = value" (or "key: value") per line; # starts a comment
+function Content.parse_info(text)
+  local t = {}
+  for line in (text .. "\n"):gmatch "([^\n]*)\n" do
+    line = line:gsub("\r$", ""):gsub("^%s+", ""):gsub("%s+$", "")
+    if line ~= "" and not line:match "^[#;]" and not line:match "^%-%-" then
+      local k, v = line:match "^([%w_%.%-]+)%s*[=:]%s*(.-)$"
+      if k then t[k:lower()] = (v:gsub('^"(.*)"$', "%1")) end
+    end
+  end
+  return t
+end
+
+-- "255, 90, 70" or "#ff5a46"
+function Content.parse_color(v)
+  if type(v) ~= "string" then return nil end
+  local hex = v:match "^#?(%x%x%x%x%x%x)$"
+  if hex then
+    return { tonumber(hex:sub(1, 2), 16), tonumber(hex:sub(3, 4), 16), tonumber(hex:sub(5, 6), 16) }
+  end
+  local r, g, b = v:match "^(%d+)[%s,]+(%d+)[%s,]+(%d+)$"
+  if r then return { tonumber(r), tonumber(g), tonumber(b) } end
+  return nil
+end
+
+-- "12" -> 12, "yes"/"on"/"true" -> true, anything else stays a string
+local function info_value(v)
+  if v == nil then return nil end
+  local l = v:lower()
+  if l == "true" or l == "yes" or l == "on" then return true end
+  if l == "false" or l == "no" or l == "off" then return false end
+  local n = tonumber(v)
+  if n then return math.tointeger(n) or n end
+  return v
+end
+
+local AUTO = {}
+
+-- finder over the folder's files: find("image"|"audio", stem1, stem2, ...)
+local function finder(files)
+  local by_key, lists = {}, { image = {}, audio = {} }
+  for _, f in ipairs(files) do
+    local e = ext_of(f)
+    local k = IMAGE_EXT[e] and "image" or (AUDIO_EXT[e] and "audio" or nil)
+    if k then
+      local key = k .. ":" .. stem_of(f)
+      by_key[key] = by_key[key] or f
+      lists[k][#lists[k] + 1] = f
+    end
+  end
+  local function find(kind, ...)
+    for i = 1, select("#", ...) do
+      local f = by_key[kind .. ":" .. select(i, ...)]
+      if f then return f end
+    end
+    return nil
+  end
+  return find, lists
+end
+
+function AUTO.chars(def, info, find, lists)
+  local moods = {}
+  for _, mood in ipairs { "idle", "happy", "worried", "hurt", "win", "lose" } do
+    moods[mood] = find("image", mood)
+  end
+  def.portrait = find("image", "portrait", "character", "char", "idle")
+    or (#lists.image == 1 and lists.image[1])
+    or nil
+  def.moods = moods
+  if not def.portrait and next(moods) == nil then
+    return "no char.lua here - add a portrait.png (see docs/GETTING_STARTED.md)"
+  end
+  local voice, chain = {}, {}
+  for n = 1, 20 do
+    local f = find("audio", "chain" .. n)
+    if not f then break end
+    chain[#chain + 1] = f
+  end
+  if #chain == 0 then chain[1] = find("audio", "chain") end
+  voice.chain = #chain > 0 and chain or nil
+  for _, ev in ipairs { "start", "attack", "damage", "win", "lose" } do
+    voice[ev] = find("audio", ev)
+  end
+  voice.all_clear = find("audio", "all_clear", "allclear")
+  def.voice = voice
+  def.color = Content.parse_color(info.color)
+  def.skin, def.stage, def.music = info.skin, info.stage, info.music
+  def.cpu = {
+    chain_goal = tonumber(info.cpu_chain_goal or info.chain_goal),
+    speed = tonumber(info.cpu_speed),
+    noise = tonumber(info.cpu_noise),
+  }
+end
+
+function AUTO.stages(def, info, find, lists, extras)
+  if #lists.image == 0 then
+    return "no stage.lua here - add a background.png (see docs/GETTING_STARTED.md)"
+  end
+  local bg = find("image", "background", "bg", "back")
+  if not bg and #lists.image == 1 then bg = lists.image[1] end
+  local layers = {}
+  if bg then layers[1] = { image = bg, fit = true } end
+  for _, f in ipairs(lists.image) do
+    if f ~= bg then
+      if stem_of(f):find("tile", 1, true) then
+        -- repeating pattern that drifts slowly
+        layers[#layers + 1] = {
+          image = f,
+          tile = true,
+          scroll_x = tonumber(info.scroll_x) or 0.25,
+          scroll_y = tonumber(info.scroll_y) or 0,
+          alpha = tonumber(info.tile_alpha) or 255,
+        }
+      else
+        layers[#layers + 1] = { image = f } -- a full-size overlay, drawn at the top-left
+      end
+    end
+  end
+  def.layers = layers
+  local top = Content.parse_color(info.top_color or info.color)
+  local bottom = Content.parse_color(info.bottom_color or info.color)
+  if top then def.gradient = { top = top, bottom = bottom or top } end
+  -- a song inside the stage folder plays on this stage
+  local song = find("audio", "music", "song", "theme") or lists.audio[1]
+  if song then
+    local sid = "stage_" .. def.id
+    extras[#extras + 1] = {
+      kind = "music",
+      id = sid,
+      def = {
+        id = sid,
+        kind = "music",
+        folder = def.folder,
+        source = def.folder .. "/" .. song,
+        root = def.root,
+        file = song,
+        hidden = true,
+        auto = true,
+        hash = "0",
+        name = pretty(def.id) .. " theme",
+        author = info.author,
+      },
+    }
+    def.music = sid
+  else
+    def.music = info.music
+  end
+end
+
+function AUTO.skins(def, info, find, lists)
+  local sheet = find("image", "puyos", "sheet", "skin")
+    or (#lists.image == 1 and lists.image[1])
+    or nil
+  if not sheet then return "no skin.lua here - add a puyos.png sheet (see docs/SKINS.md)" end
+  def.sheet = sheet
+  def.cell = math.tointeger(tonumber(info.cell))
+  def.auto_cell = def.cell == nil -- measured from the sheet width when loaded
+  def.filter = info.filter
+  if info.faces ~= nil then def.faces = info_value(info.faces) end
+  local colors = {}
+  for i = 1, 6 do
+    colors[i] = Content.parse_color(info["color" .. i])
+    if not colors[i] then
+      colors = nil
+      break
+    end
+  end
+  def.colors = colors
+end
+
+function AUTO.music(def, info, find, lists, _, single)
+  local f = single or find("audio", "song", "music") or lists.audio[1]
+  if not f then return "no song.lua here - add an .ogg or .wav file (see docs/MUSIC.md)" end
+  def.file = f
+  if info.loop ~= nil then def.loop = info_value(info.loop) end
+  def.loop_start = tonumber(info.loop_start)
+  def.volume = tonumber(info.volume)
+end
+
+function AUTO.modes(def, info)
+  local rules = {}
+  for k, v in pairs(info) do
+    local d = Rules.DEFAULTS[k]
+    if d ~= nil and type(d) ~= "table" then rules[k] = info_value(v) end
+  end
+  if next(rules) == nil then
+    return "no mode.lua here - add an info.txt with rules, e.g. gravity = 60 (see docs/MODES.md)"
+  end
+  def.rules = rules
+end
+
+local function load_auto(kind, id, folder, root, single)
+  local files = {}
+  if single then
+    files[1] = single
+  else
+    for _, e in ipairs(sys.list_dir(folder)) do
+      if not e.dir then files[#files + 1] = e.name end
+    end
+    table.sort(files)
+  end
+  local info_text
+  for _, f in ipairs(files) do
+    if f:lower() == "info.txt" and not single then info_text = sys.read_file(folder .. "/" .. f) end
+  end
+  local info = info_text and Content.parse_info(info_text) or {}
+  local def = {
+    id = id,
+    kind = kind,
+    folder = folder,
+    root = root.label,
+    auto = true,
+    single = single,
+    source = folder .. "/" .. (single or "info.txt"),
+  }
+  local find, lists = finder(files)
+  local extras = {}
+  local err = AUTO[kind](def, info, find, lists, extras, single)
+  if err then return Content.report(kind, id, err) end
+  def.name = info.name or pretty(id)
+  def.author = info.author
+  def.description = def.description or info.description
+  def.order = tonumber(info.order)
+  -- fingerprint (modes are compared online): the settings and the file list
+  def.hash = Content.hash_string((info_text or "") .. "\n" .. table.concat(files, "\n"))
+  register(kind, id, def)
+  for _, x in ipairs(extras) do
+    register(x.kind, x.id, x.def)
+  end
 end
 
 function Content.default_roots(extra)
@@ -392,19 +647,26 @@ function Content.load_all(extra)
           local entries = sys.list_dir(dir)
           table.sort(entries, function(a, b) return a.name < b.name end)
           for _, e in ipairs(entries) do
-            local id, folder, file
+            -- ids come from folder/file names; be forgiving with spaces etc.
+            local id, folder, file, single
+            local auto = false
             if e.dir then
               id, folder = e.name, dir .. "/" .. e.name
               file = folder .. "/" .. Content.FILE[kind]
-              if sys.exists(file) ~= "file" then file = nil end
+              if sys.exists(file) ~= "file" then
+                file, auto = nil, true -- no code: build it from the files inside
+              end
             elseif kind == "music" and e.name:match "%.lua$" then
               id, folder, file = e.name:gsub("%.lua$", ""), dir, dir .. "/" .. e.name
+            elseif kind == "music" and AUDIO_EXT[ext_of(e.name)] then
+              id, folder, single = e.name:gsub("%.%w+$", ""), dir, e.name -- a loose song file
             end
-            if file then
-              if id:match "^[%w_%-]+$" then
+            if id then
+              id = id:gsub("[^%w_%-]+", "_")
+              if file then
                 load_item(kind, id, folder, file, root)
-              else
-                Content.report(kind, id, "invalid folder name (use letters, digits, _ and -)")
+              elseif auto or single then
+                load_auto(kind, id, folder, root, single)
               end
             end
           end

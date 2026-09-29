@@ -35,7 +35,68 @@ buyo-buyo -- --mods ~/my-buyo-pack --mods ~/friends-pack
 Load order: built-in `content/` first, then your mods folder, then every
 `--mods` folder. A later item with the same id replaces an earlier one.
 
-## 2. Your first character, step by step
+## 2. No code needed: just drop in files
+
+You can make every kind of content **without writing any code**. Make a
+folder, put your pictures and sounds in it with the names below, press
+**F5**. That's all.
+
+| To make a... | Folder | Put in it |
+|---|---|---|
+| character | `chars/My Hero/` | `portrait.png` - and if you like, one picture per mood: `happy.png`, `worried.png`, `hurt.png`, `win.png`, `lose.png` - and voices: `chain1.ogg`, `chain2.ogg`, ... `win.ogg`, `lose.ogg` |
+| stage | `stages/Beach/` | `background.png` (stretched to fill the screen); pictures with `tile` in the name repeat and drift (`clouds_tile.png`); any other picture is laid on top; `music.ogg` plays during the match |
+| puyo skin | `skins/Pixel Blobs/` | `puyos.png` - a sheet of 16 x 7 puyos (get a template with **EXPORT SKIN SHEET**, see [SKINS.md](SKINS.md)) |
+| song | `music/` | any `.ogg` or `.wav` file, e.g. `music/My Song.ogg` |
+| game mode | `modes/Fast Five/` | an `info.txt` with the rules to change (see below) |
+
+Pictures can be PNG (best), JPG, BMP or TGA; sounds OGG or WAV. Folder and
+file names may contain spaces. If a folder holds only **one** picture, it
+is used as the portrait / background / sheet whatever its name.
+
+### info.txt: names, colors and settings in plain text
+
+Every folder can also have an `info.txt` - a plain text file, one setting
+per line:
+
+```
+name = Tomato Queen
+author = your name
+description = Ruler of the vegetable garden.
+color = #ff5a46
+```
+
+Colors can be written `#ff5a46` or `255, 90, 70`. Lines starting with `#`
+are comments. Without an `info.txt` the name comes from the folder name
+(`tomato_queen` becomes "Tomato Queen").
+
+Settings each kind understands:
+
+| Kind | Settings |
+|---|---|
+| all | `name`, `author`, `description`, `order` (position in lists, lower first) |
+| character | `color`, `skin`, `stage`, `music` (ids of other content), `cpu_chain_goal`, `cpu_speed`, `cpu_noise` (see [CHARACTERS.md](CHARACTERS.md#cpu-personality)) |
+| stage | `color` or `top_color` + `bottom_color` (background gradient behind your pictures), `scroll_x`, `scroll_y` (speed of `tile` pictures), `tile_alpha`, `music` (a song id, if there is no music file) |
+| skin | `cell` (cell size, normally detected), `filter` (`nearest` for crisp pixel art - automatic for small cells), `faces` (`no` if your puyos have their faces drawn in), `color1` ... `color6` |
+| song | `loop` (`yes`/`no`), `loop_start` (seconds), `volume` (0 to 1) |
+| mode | any rule from [the rules table](MODES.md#all-rules), e.g. `colors = 5`, `gravity = 80`, `target_points = 50`, `first_to = 3` |
+
+A complete no-code character is simply:
+
+```
+chars/
+  Tomato Queen/
+    portrait.png
+    happy.png
+    chain1.ogg
+    chain2.ogg
+    info.txt        name = Tomato Queen / color = #ff5a46
+```
+
+When you want more - pictures painted by code, animated stages, rules that
+react to what happens in the match - switch to a Lua file, below. You can
+mix: a `char.lua` can still use your PNG and OGG files.
+
+## 3. Your first character with code, step by step
 
 Create `mods/chars/tomato/char.lua`:
 
@@ -73,7 +134,7 @@ Prefer drawing in an image editor? Replace `paint` with
 `portrait = "tomato.png"` and put `tomato.png` (any size, transparent
 background) next to `char.lua`.
 
-## 3. The edit -> test loop
+## 4. The edit -> test loop
 
 - **F5** reloads the engine *and* all content without restarting.
 - **CONTENT** (main menu) shows every installed item with a live preview:
@@ -99,7 +160,7 @@ background) next to `char.lua`.
   buyo-buyo -- --mode cpu --char1 tomato --stage my_stage --game-mode my_mode
   ```
 
-## 4. Start from something that works
+## 5. Start from something that works
 
 In **CONTENT**, select any item, press **Z** -> **REMIX INTO MY MODS**. The
 whole folder is copied to your mods folder as `my_<id>` (with "My" added to
@@ -109,7 +170,7 @@ change one thing, press F5, see what happened.
 For skins there's also **EXPORT SKIN SHEET**: it writes the selected skin
 as a PNG template you can paint over (see [SKINS.md](SKINS.md)).
 
-## 5. Share your pack
+## 6. Share your pack
 
 A pack is just folders. Zip them with the same layout as the mods folder:
 
@@ -133,7 +194,7 @@ Players unzip it into their mods folder (or keep it anywhere and use
   mode file to play it online - see [NETPLAY.md](NETPLAY.md).
 - Only ship files you're allowed to share. Credit sources.
 
-## 6. What content can and cannot do
+## 7. What content can and cannot do
 
 Content files run in a **sandbox**: they get drawing, sound and math
 functions ([API.md](API.md)), and can read files from their own folder only.

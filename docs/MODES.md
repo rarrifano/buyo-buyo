@@ -10,6 +10,22 @@ Modes come in two flavours, and you can mix them:
 - **Hooks** - small functions the engine calls at key moments
   (`content/modes/nuisance_rain/`).
 
+## Without code
+
+A folder with an `info.txt` is a mode - every rule from the table below can
+be set in plain text:
+
+```
+name = Fast Five
+description = Five colors, fast drops, cheap nuisance.
+colors = 5
+gravity = 80
+target_points = 50
+```
+
+Hooks (functions that react to the match) need a `mode.lua`. See
+[the no-code guide](GETTING_STARTED.md#2-no-code-needed-just-drop-in-files).
+
 ## Rules only
 
 ```lua

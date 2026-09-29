@@ -65,15 +65,26 @@ function Browser:remix(def)
     n = n + 1
     dst = base .. "_" .. n
   end
-  if def.kind == "music" and def.folder:match "/music$" then
+  if def.kind == "music" and def.single then
+    -- a loose song file: give it its own folder
+    sys.mkdir(dst)
+    sys.write_file(dst .. "/" .. def.single, sys.read_file(def.folder .. "/" .. def.single) or "")
+  elseif def.kind == "music" and def.folder:match "/music$" then
     -- single-file song: make it a folder
     sys.mkdir(dst)
     sys.write_file(dst .. "/song.lua", sys.read_file(def.source) or "")
   else
     copy_tree(def.folder, dst)
   end
+  if def.auto then
+    -- no-code item: the name lives in info.txt (created if missing)
+    local info = sys.read_file(dst .. "/info.txt") or ""
+    local renamed, n_sub = info:gsub("([Nn]ame%s*[=:]%s*)([^\r\n]*)", "%1My %2", 1)
+    if n_sub == 0 then renamed = "name = My " .. def.name .. "\n" .. info end
+    sys.write_file(dst .. "/info.txt", renamed)
+  end
   local file = dst .. "/" .. Content.FILE[def.kind]
-  local src = sys.read_file(file)
+  local src = not def.auto and sys.read_file(file)
   if src then
     src = src:gsub('name%s*=%s*"([^"]*)"', 'name = "My %1"', 1)
     sys.write_file(file, src)
@@ -202,7 +213,8 @@ function Browser:draw_preview(def, x, y)
   UI.text(
     "FROM "
       .. def.root:upper()
-      .. (def.overrides and (" (OVERRIDES " .. def.overrides:upper() .. ")") or ""),
+      .. (def.overrides and (" (OVERRIDES " .. def.overrides:upper() .. ")") or "")
+      .. (def.auto and "   NO CODE: FILES + INFO.TXT" or ""),
     x,
     y + 50,
     1.5,
@@ -228,7 +240,7 @@ function Browser:draw_preview(def, x, y)
     sk:puyo(6, x + 220, py + 140, 60, 0)
     UI.text(
       "CELL "
-        .. def.cell
+        .. tostring(def.cell or "?")
         .. "  "
         .. (def.sheet and ("SHEET " .. def.sheet:upper()) or "PAINTED BY CODE"),
       x,

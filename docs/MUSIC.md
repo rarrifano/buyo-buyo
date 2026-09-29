@@ -7,6 +7,14 @@ audio file** (OGG Vorbis or WAV). Either way it is one Lua file:
 - `music/<id>.lua`, or
 - `music/<id>/song.lua` (use a folder when the song has an audio file).
 
+## Without code
+
+Drop an `.ogg` or `.wav` file into `music/` and it's a song, named after
+the file (`music/Boss Theme.ogg` -> id `Boss_Theme`). For loop points and
+volume, use a folder with the file and an `info.txt`
+(`loop_start = 12.5`, `volume = 0.8`). A `music.ogg` inside a stage
+folder plays on that stage. See [the no-code guide](GETTING_STARTED.md#2-no-code-needed-just-drop-in-files).
+
 ## Where songs are used
 
 The engine asks for songs by id:

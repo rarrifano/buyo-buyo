@@ -77,7 +77,11 @@ ENGINE_OBJ := $(ENGINE_SRC:src/%.c=$(BUILD)/obj/%.o)
 STB_OBJ    := $(BUILD)/obj/stb_impl.o $(BUILD)/obj/stb_vorbis_impl.o
 
 WARN   := -Wall -Wextra -Wshadow -Wno-unused-parameter
-CFLAGS += -std=gnu11 $(OPT) -MMD -MP
+# short commit hash of the working tree (dirty-suffixed), embedded in the
+# binary as BUYO_COMMIT so the menu can show exactly what's running.
+COMMIT   := $(shell git rev-parse --short=8 HEAD 2>/dev/null || echo unknown)
+DIRTY    := $(shell git diff --quiet --ignore-submodules HEAD 2>/dev/null || echo -dirty)
+CFLAGS += -std=gnu11 $(OPT) -MMD -MP -DBUYO_COMMIT=\"$(COMMIT)$(DIRTY)\"
 INC    := -Isrc -Ithird_party/stb $(LUA_CFLAGS) $(SDL_CFLAGS)
 LDLIBS += $(LUA_LIBS) $(SDL_LIBS) $(PLATFORM_LIBS)
 
@@ -109,10 +113,10 @@ debug:
 	        LDFLAGS="-fsanitize=address,undefined"
 
 test: $(TARGET)
-	./$(TARGET) --headless --frames 1 -- --test
-	./$(TARGET) --headless --frames 1 -- --check-content
+	./$(TARGET) --headless --frames 1 -- --test --no-user-mods
+	./$(TARGET) --headless --frames 1 -- --check-content --no-user-mods
 	./$(TARGET) --headless --frames 20000 -- --mode watch --level 3 --level2 4 --seed 7 \
-	            --first-to 2 --skip-draw --turbo 4 --quit-at-end
+	            --first-to 2 --skip-draw --turbo 4 --quit-at-end --no-user-mods
 	./scripts/netplay-test.sh ./$(TARGET)
 
 # ---- packaging --------------------------------------------------------

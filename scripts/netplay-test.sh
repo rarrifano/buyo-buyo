@@ -15,7 +15,7 @@ TIMEOUT="${TIMEOUT:-240}"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-common=(--headless --realtime --frames $((TIMEOUT * 60)) --)
+common=(--headless --realtime --frames $((TIMEOUT * 60)) -- --no-user-mods)
 "$BIN" "${common[@]}" --host --net-port "$PORT_A" --net-bot 3 --net-sim "$SIM" --no-stun \
        --first-to 1 --skip-draw --quit-at-end >"$tmp/a.log" 2>&1 &
 pid_a=$!

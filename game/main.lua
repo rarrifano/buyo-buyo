@@ -76,6 +76,8 @@ local function parse_args()
       opts.net_sim = lag and { lag = tonumber(lag), jitter = tonumber(jit), loss = tonumber(loss) }
     elseif k == "--no-stun" then
       opts.no_stun = true
+    elseif k == "--no-user-mods" then
+      opts.no_user_mods = true
     elseif k == "--export-skin" then
       opts.export_skin, opts.export_file = val(), val()
     elseif k == "--check-content" then
@@ -123,19 +125,20 @@ local function check_content()
     for event, v in pairs(type(def.voice) == "table" and def.voice or {}) do
       local files = type(v) == "string" and { v } or (type(v) == "table" and v or {})
       for _, f in ipairs(files) do
+        -- decode for real: a corrupt file must fail here, not in a match
         local p, err = Content.path(def, f)
-        if not p or sys.exists(p) ~= "file" then
-          Content.report("chars", def.id, "voice." .. event .. ": missing " .. tostring(p or err))
-        end
+        local ok
+        if p then ok, err = audio.load(p) end
+        if not ok then Content.report("chars", def.id, "voice." .. event .. ": " .. tostring(err)) end
       end
     end
   end
   for _, def in ipairs(Content.list "music") do
     if def.file then
       local p, err = Content.path(def, def.file)
-      if not p or sys.exists(p) ~= "file" then
-        Content.report("music", def.id, "missing file " .. tostring(p or err))
-      end
+      local ok
+      if p then ok, err = audio.load(p) end
+      if not ok then Content.report("music", def.id, tostring(err)) end
     end
   end
   for _, def in ipairs(Content.list "modes") do
@@ -219,20 +222,26 @@ function App.load()
     math.randomseed()
   end
   if opts.test then
-    local ok = require "tests.rules_test"()
-    ok = require "tests.netplay_test"() and ok
-    os.exit(ok and 0 or 1, true)
+    -- pure logic first; the scene smoke test below needs the whole engine
+    opts.test_ok = require "tests.rules_test"()
+    opts.test_ok = require "tests.netplay_test"() and opts.test_ok
   end
   if not sys.headless() then Settings.load() end -- tests always use defaults
   if opts.net_port then Settings.data.net_port = opts.net_port end
   if opts.first_to then Settings.data.first_to = opts.first_to end
   Settings.apply()
   Content.extra_roots = opts.mods
+  Content.skip_user = opts.no_user_mods -- hermetic tests: built-in + --mods only
   Content.load_all(opts.mods)
   Content.ensure_user_dir()
   Sprites.build()
   UI.skin = Skin.get(Settings.data.skin)
   Controls.init()
+
+  if opts.test then
+    local ok = require "tests.scenes_test"() and opts.test_ok
+    os.exit(ok and 0 or 1, true)
+  end
 
   if opts.export_skin then
     local def = Content.get("skins", opts.export_skin)

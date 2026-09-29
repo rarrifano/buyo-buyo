@@ -340,7 +340,9 @@ end
 function Content.default_roots(extra)
   local roots = { { path = sys.data_dir() .. "/../content", label = "built-in" } }
   local pref = sys.pref_dir()
-  if pref and pref ~= "" then roots[#roots + 1] = { path = pref .. "mods", label = "user" } end
+  if pref and pref ~= "" and not Content.skip_user then
+    roots[#roots + 1] = { path = pref .. "mods", label = "user" }
+  end
   for _, p in ipairs(extra or {}) do
     roots[#roots + 1] = { path = p, label = "extra" }
   end

@@ -41,6 +41,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # full history + tags: the packaged version comes from `git describe`
+          fetch-depth: 0
       - name: Install mingw + SDL2
         run: |
           sudo apt-get update

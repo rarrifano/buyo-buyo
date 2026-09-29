@@ -18,7 +18,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define BUYO_VERSION "0.2.0"
+#define BUYO_VERSION "0.2.0" /* fallback when not built from a git checkout */
+#ifndef BUYO_BUILD_VERSION
+#define BUYO_BUILD_VERSION BUYO_VERSION /* set by the Makefile from `git describe --tags` */
+#endif
 #ifndef BUYO_COMMIT
 #define BUYO_COMMIT "unknown" /* set by the Makefile from `git rev-parse --short HEAD` */
 #endif

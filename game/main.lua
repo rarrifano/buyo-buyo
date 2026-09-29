@@ -27,6 +27,13 @@ local Sprites = require "view.sprites"
 local Skin = require "view.skin"
 local UI = require "view.ui"
 
+-- Load the simulation and netcode now, together with their fingerprint
+-- (App.load), so the online version check describes the running code even if
+-- the files change on disk while the game is open.
+require "puyo.match"
+require "net.rollback"
+require "net.pack"
+
 local App = {}
 local opts = { shots = {}, mods = {} }
 local frame = 0
@@ -219,6 +226,7 @@ local function direct_match()
 end
 
 function App.load()
+  Content.core_hash()
   parse_args()
   -- no argument = time + ASLR address: two processes started in the same
   -- second must not share random numbers (netplay nonces!)

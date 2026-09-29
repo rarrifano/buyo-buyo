@@ -81,7 +81,13 @@ WARN   := -Wall -Wextra -Wshadow -Wno-unused-parameter
 # binary as BUYO_COMMIT so the menu can show exactly what's running.
 COMMIT   := $(shell git rev-parse --short=8 HEAD 2>/dev/null || echo unknown)
 DIRTY    := $(shell git diff --quiet --ignore-submodules HEAD 2>/dev/null || echo -dirty)
-CFLAGS += -std=gnu11 $(OPT) -MMD -MP -DBUYO_COMMIT=\"$(COMMIT)$(DIRTY)\"
+# The version shown in the game comes from git: the tag on this commit
+# (v1.2.0), the tag plus commits since (v1.2.0-3-gabc1234), or the bare commit
+# when there are no tags yet; "-dirty" marks local changes. Without git (e.g.
+# a source tarball) the BUYO_VERSION fallback in src/engine.h is used.
+BASE_VERSION  := $(shell grep -m1 'define BUYO_VERSION ' src/engine.h | cut -d '"' -f2)
+BUILD_VERSION := $(or $(shell git describe --tags --always --dirty 2>/dev/null),$(BASE_VERSION))
+CFLAGS += -std=gnu11 $(OPT) -MMD -MP
 INC    := -Isrc -Ithird_party/stb $(LUA_CFLAGS) $(SDL_CFLAGS)
 LDLIBS += $(LUA_LIBS) $(SDL_LIBS) $(PLATFORM_LIBS)
 
@@ -94,6 +100,16 @@ $(TARGET): $(ENGINE_OBJ) $(STB_OBJ) $(LUA_OBJ)
 
 $(BUILD)/obj/%.o: src/%.c | $(BUILD)/obj
 	$(CC) $(CFLAGS) $(WARN) $(INC) -c $< -o $@
+
+# The version/commit strings only go into the files that print them, and a
+# stamp file rebuilds exactly those when the strings change (a new commit, a
+# tag, local edits) - otherwise make would keep showing a stale version.
+VERSION_DEFS := -DBUYO_BUILD_VERSION=\"$(BUILD_VERSION)\" -DBUYO_COMMIT=\"$(COMMIT)$(DIRTY)\"
+$(BUILD)/obj/main.o $(BUILD)/obj/script.o: CFLAGS += $(VERSION_DEFS)
+$(BUILD)/obj/main.o $(BUILD)/obj/script.o: $(BUILD)/version.stamp
+$(BUILD)/version.stamp: FORCE | $(BUILD)/obj
+	@echo '$(VERSION_DEFS)' | cmp -s - $@ 2>/dev/null || echo '$(VERSION_DEFS)' > $@
+FORCE:
 
 # third-party code: no warnings, never our business
 $(BUILD)/obj/stb_impl.o $(BUILD)/obj/stb_vorbis_impl.o: $(BUILD)/obj/%.o: src/%.c | $(BUILD)/obj
@@ -121,14 +137,14 @@ test: $(TARGET)
 	./scripts/netplay-test.sh ./$(TARGET) 50,20,5
 
 # ---- packaging --------------------------------------------------------
-VERSION  := $(shell grep -m1 'define BUYO_VERSION' src/engine.h | cut -d '"' -f2)
+VERSION  := $(BUILD_VERSION)
 DISTNAME := buyo-buyo-$(VERSION)-$(TARGET_OS)
 DISTDIR  := dist/$(DISTNAME)
 
 dist: $(TARGET)
 	rm -rf $(DISTDIR) && mkdir -p $(DISTDIR)
 	cp $(TARGET) $(DISTDIR)/
-	cp -r game content docs LICENSE README.md $(DISTDIR)/
+	cp -r $(wildcard game content docs LICENSE README.md) $(DISTDIR)/
 	rm -rf $(DISTDIR)/game/tests
 	@if [ "$(TARGET_OS)" = windows ]; then ./scripts/copy-dlls.sh $(TARGET) $(DISTDIR); fi
 	cd dist && rm -f $(DISTNAME).zip && (zip -qr $(DISTNAME).zip $(DISTNAME) 2>/dev/null || tar czf $(DISTNAME).tar.gz $(DISTNAME))

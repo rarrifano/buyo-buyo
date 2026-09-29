@@ -463,12 +463,27 @@ function Content.count()
   return n
 end
 
--- hash of the simulation code: peers with different versions must not play
+-- Fingerprint of the code that must be identical for two players to play
+-- online: the simulation and the netcode. Not the git version string - the
+-- same code with a local edit elsewhere ("-dirty") must still connect.
+-- main.lua computes it at startup, i.e. from the files that were loaded.
 function Content.core_hash()
   if Content._core then return Content._core end
-  local acc = sys.version
-  for _, f in ipairs { "rules", "board", "sequence", "player", "match" } do
-    acc = acc .. (sys.read_file(sys.data_dir() .. "/puyo/" .. f .. ".lua") or f)
+  local acc = sys.base_version or sys.version
+  local files = {
+    "puyo/rules",
+    "puyo/board",
+    "puyo/sequence",
+    "puyo/player",
+    "puyo/match",
+    "core/util",
+    "net/rollback",
+    "net/pack",
+  }
+  for _, f in ipairs(files) do
+    -- CRLF (a Windows git checkout) must not look like different code
+    local src = sys.read_file(sys.data_dir() .. "/" .. f .. ".lua") or f
+    acc = acc .. src:gsub("\r\n", "\n")
   end
   Content._core = Content.hash_string(acc)
   return Content._core

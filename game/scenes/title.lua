@@ -126,8 +126,10 @@ function Title:draw()
     )
   end
   UI.text("\003\004 SELECT   Z/ENTER OK   X/ESC BACK   F5 RELOAD", 640, 684, 2, "center", UI.DIM)
-  local ver = "v" .. sys.version
-  if sys.commit and sys.commit ~= "unknown" then ver = ver .. " (" .. sys.commit .. ")" end
+  -- version from git (see the Makefile): a tag like v1.2.0[-3-gabc1234][-dirty],
+  -- a bare commit when the repo has no tags yet, or the fallback number
+  local v = sys.version
+  local ver = v:match "^v%d" and v or (v:match "^%d" and ("v" .. v) or ("build " .. v))
   UI.text(ver, 1266, 704, 1.5, "right", UI.DIM)
 end
 

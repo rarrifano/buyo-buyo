@@ -14,7 +14,8 @@
 Engine g_engine;
 
 static void usage(const char *argv0) {
-    printf("Buyo Buyo " BUYO_VERSION " - a moddable versus puzzle platform (C + SDL2 + Lua)\n\n"
+    printf("Buyo Buyo " BUYO_BUILD_VERSION
+           " - a moddable versus puzzle platform (C + SDL2 + Lua)\n\n"
            "Usage: %s [options] [-- game-args]\n\n"
            "  --data DIR      game script directory (default: auto-detect)\n"
            "  --fullscreen    start in fullscreen (toggle: F11 / Alt+Enter)\n"

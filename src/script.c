@@ -223,8 +223,10 @@ int luaopen_sys(lua_State *Ls) {
     fs_register(Ls, lua_gettop(Ls));
     lua_pushstring(Ls, SDL_GetPlatform());
     lua_setfield(Ls, -2, "platform");
-    lua_pushstring(Ls, BUYO_VERSION);
+    lua_pushstring(Ls, BUYO_BUILD_VERSION); /* git tag / commit, see Makefile */
     lua_setfield(Ls, -2, "version");
+    lua_pushstring(Ls, BUYO_VERSION);
+    lua_setfield(Ls, -2, "base_version");
     lua_pushstring(Ls, BUYO_COMMIT);
     lua_setfield(Ls, -2, "commit");
     return 1;

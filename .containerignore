@@ -1,0 +1,3 @@
+# The image build needs no sources (they are bind-mounted at run time).
+*
+!Containerfile

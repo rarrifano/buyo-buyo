@@ -1,0 +1,38 @@
+{
+  "name": "Buyo Buyo dev",
+  "build": {
+    "dockerfile": "../Containerfile",
+    "context": "..",
+    "args": { "FEDORA_VERSION": "44" }
+  },
+
+  // Keep build/, build-*/ and .cache/ inside the container's own volumes so
+  // running the devcontainer never fights the host over ownership/arch with
+  // artifacts produced by `scripts/podman.sh` or a native host build.
+  "mounts": [
+    "source=buyo-buyo-build,target=${containerWorkspaceFolder}/build,type=volume",
+    "source=buyo-buyo-cache,target=${containerWorkspaceFolder}/.cache,type=volume"
+  ],
+
+  "remoteUser": "root",
+  "workspaceFolder": "/workspaces/buyo-buyo",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "sumneko.lua",
+        "EditorConfig.EditorConfig"
+      ],
+      "settings": {
+        "C_Cpp.clang_format_style": "file",
+        "editor.formatOnSave": true
+      }
+    }
+  },
+
+  // Sanity-build once the container is created so `make`/`make test` are
+  // ready to go immediately.
+  "postCreateCommand": "make -j$(nproc)"
+}

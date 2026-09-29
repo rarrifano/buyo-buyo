@@ -16,30 +16,39 @@ permissions:
 
 jobs:
   linux:
-    # pinned (not -latest): the glibc it builds against is the oldest one the
-    # binary runs on
+    # built on Ubuntu 22.04 (glibc 2.35): runs on glibc >= 2.34 (Ubuntu 22.04+,
+    # Debian 12+, Fedora 35+, RHEL 9+); glibc 2.38+ would make fmod need 2.38
     runs-on: ubuntu-24.04
+    container: ubuntu:22.04
     steps:
+      - name: Install dependencies
+        # git before checkout, or it downloads a tarball without history
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential pkg-config libsdl2-dev git ca-certificates
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # the version comes from `git describe --tags`
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libsdl2-dev pkg-config
       - name: Package
-        run: make dist
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          make dist
       - name: Smoke-test the package
         run: |
           mkdir unpacked && tar xzf dist/*.tar.gz -C unpacked
           bash scripts/smoke-test-dist.sh unpacked/*/
+          echo "needs $(objdump -T unpacked/*/buyo-buyo | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)"
       - uses: actions/upload-artifact@v4
         with:
           name: linux
           path: dist/*.tar.gz
 
   macos:
-    runs-on: macos-latest
+    runs-on: macos-latest # Apple Silicon
+    env:
+      # default = the runner's macOS, which would lock out every older Mac
+      MACOSX_DEPLOYMENT_TARGET: "11.0"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,6 +61,7 @@ jobs:
         run: |
           mkdir unpacked && tar xzf dist/*.tar.gz -C unpacked
           bash scripts/smoke-test-dist.sh unpacked/*/
+          otool -l unpacked/*/buyo-buyo | grep -A3 LC_BUILD_VERSION | grep minos
       - uses: actions/upload-artifact@v4
         with:
           name: macos

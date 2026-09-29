@@ -128,8 +128,12 @@ local function check_content()
         -- decode for real: a corrupt file must fail here, not in a match
         local p, err = Content.path(def, f)
         local ok
-        if p then ok, err = audio.load(p) end
-        if not ok then Content.report("chars", def.id, "voice." .. event .. ": " .. tostring(err)) end
+        if p then
+          ok, err = audio.load(p)
+        end
+        if not ok then
+          Content.report("chars", def.id, "voice." .. event .. ": " .. tostring(err))
+        end
       end
     end
   end
@@ -137,8 +141,12 @@ local function check_content()
     if def.file then
       local p, err = Content.path(def, def.file)
       local ok
-      if p then ok, err = audio.load(p) end
-      if not ok then Content.report("music", def.id, tostring(err)) end
+      if p then
+        ok, err = audio.load(p)
+      end
+      if not ok then
+        Content.report("music", def.id, tostring(err))
+      end
     end
   end
   for _, def in ipairs(Content.list "modes") do
